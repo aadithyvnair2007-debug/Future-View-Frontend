@@ -1,186 +1,235 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
 
-const View = () => {
-  // Navigation/Screen state: "intro" | "exams" | "courses"
-  const [screen, setScreen] = useState("intro");
-  const [introMessage, setIntroMessage] = useState("Loading welcome configuration...");
-  const [selectedExam, setSelectedExam] = useState("");
+// 1. Accept step and setStep as props here
+export default function View({ currentUser, onOpenAuth, step = 'intro', setStep }) {
+  const [pendingExplore, setPendingExplore] = useState(false);
+  
+  // 2. DELETE the line: const [step, setStep] = useState('intro');
+  // (Do not re-declare step here!)
+
+  const [welcomeInfo, setWelcomeInfo] = useState(null);
+  const [exams, setExams] = useState([]);
+  const [selectedExam, setSelectedExam] = useState('');
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // 1. Array defining individual accurate descriptions for each card
-  const examOptions = [
+  const defaultExams = [
     {
-      id: "JEE",
-      name: "JEE",
-      label: "J",
-      description: "Explore premier engineering, technology, and architecture programs at IITs, NITs, and central institutions."
+      name: 'JEE',
+      letter: 'J',
+      description: 'Explore premier engineering, technology, and architecture programs at IITs, NITs, and central institutions.'
     },
     {
-      id: "KEAM",
-      name: "KEAM",
-      label: "K",
-      description: "Explore professional degree engineering, architecture, and medical allied streams across colleges in Kerala."
+      name: 'KEAM',
+      letter: 'K',
+      description: 'Explore professional degree engineering, architecture, and medical allied streams across colleges in Kerala.'
     },
     {
-      id: "NEET",
-      name: "NEET",
-      label: "N",
-      description: "Explore national medical (MBBS), dental (BDS), AYUSH, and veterinary science pathways across India."
+      name: 'NEET',
+      letter: 'N',
+      description: 'Explore national medical (MBBS), dental (BDS), AYUSH, and veterinary science pathways across India.'
     }
   ];
 
-  // 2. Fetch the intro welcome data from your backend route
+  // Auto-advance after login if triggered from "Explore Pathways"
   useEffect(() => {
-    axios
-      .get("http://localhost:3010/api/welcome")
-      .then((res) => {
-        setIntroMessage(res.data);
-      })
-      .catch((err) => {
-        console.log("Intro Fetch Error:", err);
-        setIntroMessage("Welcome to the Academic Pathway Finder.");
-      });
+    if (currentUser && pendingExplore) {
+      setPendingExplore(false);
+      setStep('select-exam');
+    }
+  }, [currentUser, pendingExplore, setStep]);
+
+  // Fetch Welcome Info
+  useEffect(() => {
+    fetch('http://localhost:3010/api/welcome')
+      .then(res => res.json())
+      .then(data => setWelcomeInfo(data))
+      .catch(err => console.error("Error fetching welcome info:", err));
   }, []);
 
-  // 3. Fetch and filter courses based on user exam target array values
-  const handleExamSelect = (examName) => {
+  // Fetch Exams List
+  useEffect(() => {
+    fetch('http://localhost:3010/api/exams')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map(e => ({
+            name: e.name,
+            letter: e.name.charAt(0).toUpperCase(),
+            description: e.description || `Explore programs available through ${e.name}.`
+          }));
+          setExams(mapped);
+        } else {
+          setExams(defaultExams);
+        }
+      })
+      .catch(() => setExams(defaultExams));
+  }, []);
+
+  // FAILSAFE EXPLORE HANDLER
+  const handleExploreClick = (e) => {
+    if (e) e.preventDefault();
+    
+    if (!currentUser && typeof onOpenAuth === 'function') {
+      setPendingExplore(true);
+      onOpenAuth();
+    } else {
+      setStep('select-exam');
+    }
+  };
+
+  // FAILSAFE EXAM CLICK HANDLER
+  const handleExamClick = (examName) => {
     setSelectedExam(examName);
     setLoading(true);
-    setScreen("courses");
+    setStep('courses');
 
-    axios
-      .get("http://localhost:3010/api/courses")
-      .then((res) => {
-        const filtered = res.data.filter((course) =>
-          course.exams && course.exams.map(e => e.toUpperCase()).includes(examName.toUpperCase())
-        );
-        setCourses(filtered);
+    fetch(`http://localhost:3010/api/pathway/${examName.toLowerCase()}`)
+      .then(res => res.json())
+      .then(data => {
+        setCourses(data.courses || []);
         setLoading(false);
       })
-      .catch((err) => {
-        console.log("Error loading courses:", err);
+      .catch(err => {
+        console.error("Error fetching pathway:", err);
+        setCourses([]);
         setLoading(false);
       });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-center items-center p-6">
+    <div style={containerStyle}>
 
-      {/* SCREEN 1: INTRO WELCOME BANNER DISPLAY */}
-      {screen === "intro" && (
-        <div className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-2xl transform transition hover:scale-105 duration-300">
-          
-          {/* Dynamic Title from Backend */}
-          <h1 className="text-4xl font-extrabold text-indigo-900 mb-6 tracking-tight">
-            {typeof introMessage === 'object' ? introMessage.title : "Academic Pathway Finder"}
+      {/* ================= SCREEN 1: INTRO ================= */}
+      {step === 'intro' && (
+        <div style={cardStyle}>
+          <h1 style={mainTitleStyle}>
+            {welcomeInfo?.title || "Discover Your Future After +2"}
           </h1>
-          
-          {/* Dynamic Description from Backend */}
-          <p className="text-gray-600 text-lg leading-relaxed mb-6 border-l-4 border-indigo-500 pl-4 text-left italic">
-            "{typeof introMessage === 'object' ? introMessage.description : introMessage}"
-          </p>
 
-          {/* Dynamic Benefits List from Backend */}
-          {typeof introMessage === 'object' && introMessage.benefits && (
-            <div className="text-left mb-8 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-              <h4 className="font-bold text-indigo-950 mb-2 text-sm uppercase tracking-wide">Why Use Future View?</h4>
-              <ul className="list-disc pl-5 space-y-1.5 text-gray-700 text-sm">
-                {introMessage.benefits.map((benefit, index) => (
-                  <li key={index}>{benefit}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          {/* Action Button */}
-          <button
-            onClick={() => setScreen("exams")}
-            className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold py-4 px-8 rounded-full shadow-lg transition duration-200 group"
-          >
-            Explore More
-            <span className="ml-3 transform group-hover:translate-x-2 transition duration-200 text-2xl">➔</span>
-          </button>
+          <div style={quoteBoxStyle}>
+            <p style={quoteTextStyle}>
+              "{welcomeInfo?.description || "Choosing the right path after high school shouldn't be confusing. Our platform maps entrance exams to their ideal career tracks, helping you explore emerging fields across Engineering, Medicine, and Architecture with clear data."}"
+            </p>
+          </div>
+
+          <div style={whyBoxStyle}>
+            <h4 style={whyTitleStyle}>WHY USE FUTURE VIEW?</h4>
+            <ul style={listStyle}>
+              {welcomeInfo?.benefits ? (
+                welcomeInfo.benefits.map((b, i) => <li key={i} style={listItemStyle}>• {b}</li>)
+              ) : (
+                <>
+                  <li style={listItemStyle}>• Explore courses tied directly to your entrance exams.</li>
+                  <li style={listItemStyle}>• Discover key job roles and course durations.</li>
+                  <li style={listItemStyle}>• Make confident decisions for your future career.</li>
+                </>
+              )}
+            </ul>
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '30px' }}>
+            <button 
+              type="button"
+              style={purpleBtnStyle}
+              onClick={handleExploreClick}
+            >
+              Explore Pathways ➔
+            </button>
+          </div>
         </div>
       )}
 
-      {/* SCREEN 2: ENTRANCE EXAM SELECTION PATH */}
-      {screen === "exams" && (
-        <div className="w-full max-w-4xl text-center">
+      {/* ================= SCREEN 2: SELECT EXAM ================= */}
+      {step === 'select-exam' && (
+        <div style={{ textAlign: 'center', width: '100%', maxWidth: '1000px' }}>
           <button 
-            onClick={() => setScreen("intro")}
-            className="text-indigo-600 font-semibold mb-6 flex items-center hover:underline mx-auto"
+            type="button" 
+            style={backLinkStyle} 
+            onClick={() => setStep('intro')}
           >
             ← Back to Intro
           </button>
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Select Your Entrance Exam</h2>
-          <p className="text-gray-500 mb-8">Choose an option below to filter matching professional degree programs</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {examOptions.map((exam) => (
-              <div
-                key={exam.id}
-                onClick={() => handleExamSelect(exam.name)}
-                className="bg-white p-8 rounded-xl shadow-md border-2 border-transparent hover:border-indigo-500 cursor-pointer transform hover:-translate-y-2 transition duration-300 text-center"
+
+          <h2 style={{ fontSize: '28px', color: '#1e293b', marginBottom: '8px', fontWeight: '800' }}>
+            Select Your Entrance Exam
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '40px' }}>
+            Choose an option below to filter matching professional degree programs
+          </p>
+
+          <div style={examGridStyle}>
+            {exams.map((exam, idx) => (
+              <div 
+                key={idx} 
+                style={examCardStyle}
+                onClick={() => handleExamClick(exam.name)}
               >
-                <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-black mx-auto mb-4">
-                  {exam.label}
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">{exam.name}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{exam.description}</p>
+                <div style={avatarStyle}>{exam.letter}</div>
+                <h3 style={examTitleStyle}>{exam.name}</h3>
+                <p style={examDescStyle}>{exam.description}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* SCREEN 3: FILTERED COURSE FEEDBACK */}
-      {screen === "courses" && (
-        <div className="w-full max-w-5xl">
-          <div className="flex justify-between items-center mb-8">
+      {/* ================= SCREEN 3: COURSES ================= */}
+      {step === 'courses' && (
+        <div style={{ width: '100%', maxWidth: '1000px' }}>
+          <div style={topNavRowStyle}>
             <button 
-              onClick={() => setScreen("exams")}
-              className="text-indigo-600 font-semibold flex items-center hover:underline"
+              type="button" 
+              style={backLinkStyle} 
+              onClick={() => setStep('select-exam')}
             >
               ← Choose a Different Exam
             </button>
-            <span className="bg-indigo-600 text-white px-4 py-1.5 rounded-full font-bold text-sm tracking-wide shadow-sm">
-              SELECTED: {selectedExam}
-            </span>
+
+            <div style={pathwayBadgeStyle}>
+              PATHWAY: {selectedExam}
+            </div>
           </div>
 
           {loading ? (
-            <div className="text-center py-20 text-gray-500 font-medium text-xl">Processing...</div>
-          ) : courses.length === 0 ? (
-            <div className="bg-white p-12 rounded-xl shadow text-center">
-              <p className="text-gray-500 text-lg">No courses found matching the data payload tags for {selectedExam}.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {courses.map((course) => (
-                <div key={course._id} className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">{course.courseName}</h3>
-                    <div className="flex gap-2 mb-3">
-                      <span className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded font-semibold">{course.stream}</span>
-                      <span className="bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded font-semibold">{course.duration}</span>
-                    </div>
-                    <p className="text-gray-600 text-sm line-clamp-3 mb-4">{course.description}</p>
+            <p style={{ textAlign: 'center', color: '#64748b', margin: '40px 0' }}>Fetching career pathways...</p>
+          ) : courses.length > 0 ? (
+            <div style={courseGridStyle}>
+              {courses.map(course => (
+                <div key={course._id || course.id} style={courseCardStyle}>
+                  <h3 style={courseTitleStyle}>
+                    {course.title || course.courseName || course.name || 'Untitled Course'}
+                  </h3>
+
+                  <div style={badgeRowStyle}>
+                    <span style={categoryBadgeStyle}>
+                      {course.category || 'Engineering'}
+                    </span>
+                    <span style={durationBadgeStyle}>
+                      {course.duration}
+                    </span>
                   </div>
-                  
-                  <div className="border-t border-gray-100 pt-4 mt-2">
-                    <span className="text-xs efont-bold text-gray-400 block mb-1.5 uppercase tracking-wider">Potential Profiles</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {course.jobRoles && course.jobRoles.map((role, idx) => (
-                        <span key={idx} className="bg-gray-50 text-gray-600 text-xs px-2 py-0.5 rounded border border-gray-200">
-                          {role}
-                        </span>
-                      ))}
+
+                  <p style={courseDescStyle}>{course.description}</p>
+
+                  <div style={{ marginTop: 'auto', paddingTop: '15px' }}>
+                    <div style={profileHeaderStyle}>POTENTIAL PROFILES</div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {course.jobRoles && course.jobRoles.length > 0 ? (
+                        course.jobRoles.map((role, i) => (
+                          <span key={i} style={profileBadgeStyle}>{role}</span>
+                        ))
+                      ) : (
+                        <span style={profileBadgeStyle}>General Specialist</span>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '60px', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <h3>No courses currently found under {selectedExam}</h3>
+              <p style={{ color: '#64748b' }}>Try selecting a different pathway or check back later.</p>
             </div>
           )}
         </div>
@@ -188,6 +237,33 @@ const View = () => {
 
     </div>
   );
-};
+}
 
-export default View;
+// ================= STYLES =================
+const containerStyle = { minHeight: 'calc(100vh - 70px)', backgroundColor: '#edf2f7', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' };
+const cardStyle = { backgroundColor: '#ffffff', borderRadius: '16px', padding: '45px 50px', maxWidth: '650px', width: '100%', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)' };
+const mainTitleStyle = { fontSize: '32px', fontWeight: '800', color: '#2e1065', textAlign: 'center', marginBottom: '25px' };
+const quoteBoxStyle = { borderLeft: '4px solid #6366f1', paddingLeft: '16px', marginBottom: '25px' };
+const quoteTextStyle = { fontSize: '15px', fontStyle: 'italic', color: '#475569', lineHeight: '1.6', margin: 0 };
+const whyBoxStyle = { backgroundColor: '#f8fafc', borderRadius: '12px', padding: '20px 25px', border: '1px solid #f1f5f9' };
+const whyTitleStyle = { fontSize: '13px', fontWeight: '700', color: '#1e293b', letterSpacing: '0.5px', margin: '0 0 12px 0' };
+const listStyle = { listStyle: 'none', padding: 0, margin: 0 };
+const listItemStyle = { fontSize: '14px', color: '#475569', marginBottom: '8px', lineHeight: '1.5' };
+const purpleBtnStyle = { backgroundColor: '#4f46e5', color: '#ffffff', border: 'none', padding: '14px 32px', borderRadius: '25px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' };
+const backLinkStyle = { background: 'none', border: 'none', color: '#6366f1', fontWeight: '600', fontSize: '14px', cursor: 'pointer', marginBottom: '20px', display: 'inline-block' };
+const examGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' };
+const examCardStyle = { backgroundColor: '#ffffff', borderRadius: '12px', padding: '35px 25px', textAlign: 'center', border: '2px solid #e2e8f0', cursor: 'pointer' };
+const avatarStyle = { width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#e0e7ff', color: '#4338ca', fontWeight: '700', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto' };
+const examTitleStyle = { fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: '0 0 10px 0' };
+const examDescStyle = { fontSize: '13px', color: '#64748b', lineHeight: '1.5', margin: 0 };
+const topNavRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' };
+const pathwayBadgeStyle = { backgroundColor: '#4f46e5', color: '#ffffff', padding: '8px 18px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', letterSpacing: '0.5px' };
+const courseGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' };
+const courseCardStyle = { backgroundColor: '#ffffff', borderRadius: '12px', padding: '25px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' };
+const courseTitleStyle = { fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '0 0 12px 0' };
+const badgeRowStyle = { display: 'flex', gap: '8px', marginBottom: '15px' };
+const categoryBadgeStyle = { backgroundColor: '#eff6ff', color: '#2563eb', fontSize: '12px', fontWeight: '600', padding: '4px 10px', borderRadius: '4px' };
+const durationBadgeStyle = { backgroundColor: '#f1f5f9', color: '#475569', fontSize: '12px', fontWeight: '600', padding: '4px 10px', borderRadius: '4px' };
+const courseDescStyle = { fontSize: '13px', color: '#64748b', lineHeight: '1.6', marginBottom: '20px' };
+const profileHeaderStyle = { fontSize: '11px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '8px' };
+const profileBadgeStyle = { backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', fontSize: '12px', padding: '4px 10px', borderRadius: '4px' };
