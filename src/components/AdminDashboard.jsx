@@ -14,7 +14,6 @@ export default function AdminDashboard() {
   const [courseCategory, setCourseCategory] = useState('');
   const [courseDuration, setCourseDuration] = useState('');
   const [courseExams, setCourseExams] = useState('');
-  // 1. NEW STATES ADDED HERE
   const [courseDescription, setCourseDescription] = useState('');
   const [courseJobRoles, setCourseJobRoles] = useState('');
 
@@ -81,16 +80,16 @@ export default function AdminDashboard() {
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     const examArray = courseExams.split(',').map(e => e.trim().toUpperCase()).filter(Boolean);
-    // 2. CONVERT JOB ROLES TO ARRAY
     const jobRolesArray = courseJobRoles.split(',').map(j => j.trim()).filter(Boolean);
 
     const payload = { 
       title: courseTitle, 
+      courseName: courseTitle, 
       category: courseCategory, 
       duration: courseDuration, 
       exams: examArray,
-      description: courseDescription, // Added
-      jobRoles: jobRolesArray          // Added
+      description: courseDescription,
+      jobRoles: jobRolesArray
     };
 
     try {
@@ -116,11 +115,13 @@ export default function AdminDashboard() {
     }
   };
 
-  // 3. UPDATE EDIT POPULATION LOGIC
   const handleStartEditCourse = (course) => {
     setEditingCourseId(course._id || course.id);
     setCourseTitle(course.title || course.courseName || '');
-    setCourseCategory(course.category || '');
+    
+    // 👈 Fallback added for alternative key names from seed data
+    setCourseCategory(course.category || course.courseCategory || course.stream || course.type || '');
+    
     setCourseDuration(course.duration || '');
     setCourseExams(Array.isArray(course.exams) ? course.exams.join(', ') : (course.exams || ''));
     setCourseDescription(course.description || '');
@@ -128,7 +129,6 @@ export default function AdminDashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 4. UPDATE RESET LOGIC
   const resetCourseForm = () => {
     setEditingCourseId(null);
     setCourseTitle('');
@@ -329,7 +329,6 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                {/* 5. NEW INPUT FIELDS ADDED HERE */}
                 <div style={inputGroupStyle}>
                   <label style={labelStyle}>Description</label>
                   <textarea 
@@ -381,7 +380,10 @@ export default function AdminDashboard() {
                   courses.map((c) => (
                     <tr key={c._id || c.id} style={trStyle}>
                       <td style={{ ...tdStyle, fontWeight: '600' }}>{c.title || c.courseName || c.name}</td>
-                      <td style={tdStyle}>{c.category || 'N/A'}</td>
+                      
+                      {/* 👈 Fallback added for category column rendering */}
+                      <td style={tdStyle}>{c.category || c.courseCategory || c.stream || c.type || 'N/A'}</td>
+                      
                       <td style={tdStyle}>{c.duration || 'N/A'}</td>
                       <td style={tdStyle}>{Array.isArray(c.exams) ? c.exams.join(', ') : (c.exams || 'General')}</td>
                       <td style={{ ...tdStyle, display: 'flex', gap: '8px' }}>
