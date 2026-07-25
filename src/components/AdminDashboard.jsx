@@ -14,6 +14,9 @@ export default function AdminDashboard() {
   const [courseCategory, setCourseCategory] = useState('');
   const [courseDuration, setCourseDuration] = useState('');
   const [courseExams, setCourseExams] = useState('');
+  // 1. NEW STATES ADDED HERE
+  const [courseDescription, setCourseDescription] = useState('');
+  const [courseJobRoles, setCourseJobRoles] = useState('');
 
   // Data states
   const [exams, setExams] = useState([]);
@@ -78,12 +81,16 @@ export default function AdminDashboard() {
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     const examArray = courseExams.split(',').map(e => e.trim().toUpperCase()).filter(Boolean);
+    // 2. CONVERT JOB ROLES TO ARRAY
+    const jobRolesArray = courseJobRoles.split(',').map(j => j.trim()).filter(Boolean);
 
     const payload = { 
       title: courseTitle, 
       category: courseCategory, 
       duration: courseDuration, 
-      exams: examArray 
+      exams: examArray,
+      description: courseDescription, // Added
+      jobRoles: jobRolesArray          // Added
     };
 
     try {
@@ -109,21 +116,27 @@ export default function AdminDashboard() {
     }
   };
 
+  // 3. UPDATE EDIT POPULATION LOGIC
   const handleStartEditCourse = (course) => {
     setEditingCourseId(course._id || course.id);
     setCourseTitle(course.title || course.courseName || '');
     setCourseCategory(course.category || '');
     setCourseDuration(course.duration || '');
     setCourseExams(Array.isArray(course.exams) ? course.exams.join(', ') : (course.exams || ''));
+    setCourseDescription(course.description || '');
+    setCourseJobRoles(Array.isArray(course.jobRoles) ? course.jobRoles.join(', ') : (course.jobRoles || ''));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // 4. UPDATE RESET LOGIC
   const resetCourseForm = () => {
     setEditingCourseId(null);
     setCourseTitle('');
     setCourseCategory('');
     setCourseDuration('');
     setCourseExams('');
+    setCourseDescription('');
+    setCourseJobRoles('');
   };
 
   const handleDeleteCourse = async (id) => {
@@ -312,6 +325,29 @@ export default function AdminDashboard() {
                     value={courseExams}
                     onChange={e => setCourseExams(e.target.value)}
                     required
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* 5. NEW INPUT FIELDS ADDED HERE */}
+                <div style={inputGroupStyle}>
+                  <label style={labelStyle}>Description</label>
+                  <textarea 
+                    placeholder="Brief description of the course..." 
+                    value={courseDescription}
+                    onChange={e => setCourseDescription(e.target.value)}
+                    rows="3"
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={inputGroupStyle}>
+                  <label style={labelStyle}>Potential Profiles (Comma Separated)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Software Engineer, Data Scientist, Systems Analyst" 
+                    value={courseJobRoles}
+                    onChange={e => setCourseJobRoles(e.target.value)}
                     style={inputStyle}
                   />
                 </div>
