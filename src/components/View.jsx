@@ -186,12 +186,12 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
             </button>
 
             <div style={pathwayBadgeStyle}>
-              PATHWAY: {selectedExam}
+              SELECTED EXAM: {selectedExam}
             </div>
           </div>
 
           {loading ? (
-            <p style={{ textAlign: 'center', color: '#64748b', margin: '40px 0' }}>Fetching career pathways...</p>
+            <p style={{ textAlign: 'center', color: '#64748b', margin: '40px 0' }}>Processing...</p>
           ) : courses.length > 0 ? (
             <div style={courseGridStyle}>
               {courses.map(course => (
