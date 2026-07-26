@@ -4,6 +4,10 @@ import Navbar from './components/Navbar';
 import View from './components/View';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
+import CourseCompare from './components/CourseCompare';
+import StreamMatcher from './components/StreamMatcher';
+import SavedPathways from './components/SavedPathways';
+import ProfilePage from './components/ProfilePage';
 
 export default function App() {
   const navigate = useNavigate();
@@ -62,6 +66,18 @@ export default function App() {
           } 
         />
 
+        {/* COURSE COMPARE ROUTE (PHASE 2) */}
+        <Route 
+          path="/compare" 
+          element={<CourseCompare />} 
+        />
+
+        {/* STREAM MATCHER ROUTE (PHASE 3) */}
+        <Route 
+          path="/stream-matcher" 
+          element={<StreamMatcher />} 
+        />
+
         {/* PROTECTED ADMIN ROUTE */}
         <Route 
           path="/admin" 
@@ -73,6 +89,24 @@ export default function App() {
             )
           } 
         />
+        <Route 
+           path="/saved" 
+           element={
+          <SavedPathways 
+          currentUser={currentUser} 
+           onOpenAuth={() => setShowAuthModal(true)} 
+          />
+           } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+       <ProfilePage 
+         currentUser={currentUser} 
+         onUpdateUser={(updated) => setCurrentUser(updated)} 
+       />
+       } 
+      />
       </Routes>
 
       {/* AUTH MODAL */}

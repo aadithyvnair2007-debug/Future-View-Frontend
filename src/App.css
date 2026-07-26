@@ -1,3 +1,8 @@
 body{
   text-align: center;
 }
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+
+.brand-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}

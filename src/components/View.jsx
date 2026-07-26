@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
-// 1. Accept step and setStep as props here
 export default function View({ currentUser, onOpenAuth, step = 'intro', setStep }) {
   const [pendingExplore, setPendingExplore] = useState(false);
-  
-  // 2. DELETE the line: const [step, setStep] = useState('intro');
-  // (Do not re-declare step here!)
-
   const [welcomeInfo, setWelcomeInfo] = useState(null);
   const [exams, setExams] = useState([]);
   const [selectedExam, setSelectedExam] = useState('');
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [userBookmarks, setUserBookmarks] = useState([]);
+
   const defaultExams = [
     {
       name: 'JEE',
@@ -53,9 +50,11 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           const mapped = data.map(e => ({
+            _id: e._id || e.id || e.name,
             name: e.name,
             letter: e.name.charAt(0).toUpperCase(),
-            description: e.description || `Explore programs available through ${e.name}.`
+            description: e.description || `Explore programs available through ${e.name}.`,
+            category: e.category || 'General'
           }));
           setExams(mapped);
         } else {
@@ -64,6 +63,53 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       })
       .catch(() => setExams(defaultExams));
   }, []);
+
+  // Fetch User Bookmarks when logged in
+  useEffect(() => {
+    const userId = currentUser?._id || currentUser?.id;
+    if (userId) {
+      fetch(`http://localhost:3010/api/users/${userId}/bookmarks`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setUserBookmarks(data);
+        })
+        .catch((err) => console.error("Error fetching bookmarks:", err));
+    } else {
+      setUserBookmarks([]);
+    }
+  }, [currentUser]);
+
+  // TOGGLE BOOKMARK HANDLER (For Exam Cards and Course Cards)
+  const handleToggleBookmark = (e, item, type) => {
+    e.stopPropagation(); // Stop click event from opening course list or triggering card clicks
+    
+    const userId = currentUser?._id || currentUser?.id;
+    if (!userId) {
+      if (typeof onOpenAuth === 'function') onOpenAuth();
+      return;
+    }
+
+    const itemId = String(item._id || item.id || item.name || item.title);
+    const title = item.name || item.examName || item.title || item.courseName;
+
+    const payload = {
+      itemId,
+      title,
+      type, // 'Entrance Exam' or 'Course'
+      category: item.category || 'General'
+    };
+
+    fetch(`http://localhost:3010/api/users/${userId}/bookmarks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.bookmarks) setUserBookmarks(data.bookmarks);
+      })
+      .catch((err) => console.error('Error toggling bookmark:', err));
+  };
 
   // FAILSAFE EXPLORE HANDLER
   const handleExploreClick = (e) => {
@@ -141,34 +187,66 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
 
       {/* ================= SCREEN 2: SELECT EXAM ================= */}
       {step === 'select-exam' && (
-        <div style={{ textAlign: 'center', width: '100%', maxWidth: '1000px' }}>
-          <button 
-            type="button" 
-            style={backLinkStyle} 
-            onClick={() => setStep('intro')}
-          >
-            ← Back to Intro
-          </button>
+        <div style={{ width: '100%', maxWidth: '1000px' }}>
+          {/* Properly structured Header Row */}
+          <div style={topNavRowStyle}>
+            <button 
+              type="button" 
+              style={backLinkStyle} 
+              onClick={() => setStep('intro')}
+            >
+              ← Back to Intro
+            </button>
+          </div>
 
-          <h2 style={{ fontSize: '28px', color: '#1e293b', marginBottom: '8px', fontWeight: '800' }}>
-            Select Your Entrance Exam
-          </h2>
-          <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '40px' }}>
-            Choose an option below to filter matching professional degree programs
-          </p>
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ fontSize: '28px', color: '#1e293b', marginBottom: '8px', fontWeight: '800' }}>
+              Select Your Entrance Exam
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '32px' }}>
+              Choose an option below to filter matching professional degree programs
+            </p>
+          </div>
 
           <div style={examGridStyle}>
-            {exams.map((exam, idx) => (
-              <div 
-                key={idx} 
-                style={examCardStyle}
-                onClick={() => handleExamClick(exam.name)}
-              >
-                <div style={avatarStyle}>{exam.letter}</div>
-                <h3 style={examTitleStyle}>{exam.name}</h3>
-                <p style={examDescStyle}>{exam.description}</p>
-              </div>
-            ))}
+            {exams.map((exam, idx) => {
+              const examId = String(exam._id || exam.name);
+              const isBookmarked = userBookmarks.some((b) => String(b.itemId) === examId);
+
+              return (
+                <div 
+                  key={idx} 
+                  style={{ ...examCardStyle, position: 'relative' }}
+                  onClick={() => handleExamClick(exam.name)}
+                >
+                  {/* STAR BOOKMARK BUTTON */}
+                  <button
+                    type="button"
+                    style={{
+                      ...starButtonStyle,
+                      borderColor: isBookmarked ? '#f59e0b' : '#e2e8f0',
+                      backgroundColor: isBookmarked ? '#fffbeb' : '#ffffff'
+                    }}
+                    onClick={(e) => handleToggleBookmark(e, exam, 'Entrance Exam')}
+                    title={isBookmarked ? "Remove Bookmark" : "Save Pathway"}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.08)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04)';
+                    }}
+                  >
+                    {isBookmarked ? '⭐' : '☆'}
+                  </button>
+
+                  <div style={avatarStyle}>{exam.letter}</div>
+                  <h3 style={examTitleStyle}>{exam.name}</h3>
+                  <p style={examDescStyle}>{exam.description}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -176,6 +254,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       {/* ================= SCREEN 3: COURSES ================= */}
       {step === 'courses' && (
         <div style={{ width: '100%', maxWidth: '1000px' }}>
+          {/* Properly Aligned Header Row */}
           <div style={topNavRowStyle}>
             <button 
               type="button" 
@@ -194,37 +273,72 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
             <p style={{ textAlign: 'center', color: '#64748b', margin: '40px 0' }}>Processing...</p>
           ) : courses.length > 0 ? (
             <div style={courseGridStyle}>
-              {courses.map(course => (
-                <div key={course._id || course.id} style={courseCardStyle}>
-                  <h3 style={courseTitleStyle}>
-                    {course.title || course.courseName || course.name || 'Untitled Course'}
-                  </h3>
+              {courses.map(course => {
+                const courseId = String(course._id || course.id || course.title || course.courseName);
+                const isBookmarked = userBookmarks.some((b) => String(b.itemId) === courseId);
 
-                  <div style={badgeRowStyle}>
-                    <span style={categoryBadgeStyle}>
-                      {course.category || 'Engineering'}
-                    </span>
-                    <span style={durationBadgeStyle}>
-                      {course.duration}
-                    </span>
-                  </div>
+                const profiles = Array.isArray(course.jobRoles) && course.jobRoles.length > 0 
+                  ? course.jobRoles 
+                  : Array.isArray(course.potentialProfiles) && course.potentialProfiles.length > 0 
+                  ? course.potentialProfiles 
+                  : typeof course.potentialProfiles === 'string' 
+                  ? course.potentialProfiles.split(',').map(s => s.trim())
+                  : [];
 
-                  <p style={courseDescStyle}>{course.description}</p>
+                return (
+                  <div key={courseId} style={{ ...courseCardStyle, position: 'relative' }}>
+                    {/* STAR BOOKMARK BUTTON */}
+                    <button
+                      type="button"
+                      style={{
+                        ...starButtonStyle,
+                        borderColor: isBookmarked ? '#f59e0b' : '#e2e8f0',
+                        backgroundColor: isBookmarked ? '#fffbeb' : '#ffffff'
+                      }}
+                      onClick={(e) => handleToggleBookmark(e, course, 'Course')}
+                      title={isBookmarked ? "Remove Bookmark" : "Save Course"}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.08)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.08)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04)';
+                      }}
+                    >
+                      {isBookmarked ? '⭐' : '☆'}
+                    </button>
 
-                  <div style={{ marginTop: 'auto', paddingTop: '15px' }}>
-                    <div style={profileHeaderStyle}>POTENTIAL PROFILES</div>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {course.jobRoles && course.jobRoles.length > 0 ? (
-                        course.jobRoles.map((role, i) => (
-                          <span key={i} style={profileBadgeStyle}>{role}</span>
-                        ))
-                      ) : (
-                        <span style={profileBadgeStyle}>General Specialist</span>
-                      )}
+                    <h3 style={{ ...courseTitleStyle, paddingRight: '45px' }}>
+                      {course.title || course.courseName || course.name || 'Untitled Course'}
+                    </h3>
+
+                    <div style={badgeRowStyle}>
+                      <span style={categoryBadgeStyle}>
+                        {course.category || course.courseCategory || course.stream || course.type || 'General'}
+                      </span>
+                      <span style={durationBadgeStyle}>
+                        {course.duration || 'N/A'}
+                      </span>
+                    </div>
+
+                    <p style={courseDescStyle}>{course.description}</p>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '15px' }}>
+                      <div style={profileHeaderStyle}>POTENTIAL PROFILES</div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {profiles.length > 0 ? (
+                          profiles.map((role, i) => (
+                            <span key={i} style={profileBadgeStyle}>{role}</span>
+                          ))
+                        ) : (
+                          <span style={profileBadgeStyle}>General Specialist</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '60px', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -240,8 +354,8 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
 }
 
 // ================= STYLES =================
-const containerStyle = { minHeight: 'calc(100vh - 70px)', backgroundColor: '#edf2f7', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' };
-const cardStyle = { backgroundColor: '#ffffff', borderRadius: '16px', padding: '45px 50px', maxWidth: '650px', width: '100%', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)' };
+const containerStyle = { minHeight: 'calc(100vh - 70px)', backgroundColor: '#edf2f7', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' };
+const cardStyle = { backgroundColor: '#ffffff', borderRadius: '16px', padding: '45px 50px', maxWidth: '650px', width: '100%', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)', margin: 'auto' };
 const mainTitleStyle = { fontSize: '32px', fontWeight: '800', color: '#2e1065', textAlign: 'center', marginBottom: '25px' };
 const quoteBoxStyle = { borderLeft: '4px solid #6366f1', paddingLeft: '16px', marginBottom: '25px' };
 const quoteTextStyle = { fontSize: '15px', fontStyle: 'italic', color: '#475569', lineHeight: '1.6', margin: 0 };
@@ -250,14 +364,18 @@ const whyTitleStyle = { fontSize: '13px', fontWeight: '700', color: '#1e293b', l
 const listStyle = { listStyle: 'none', padding: 0, margin: 0 };
 const listItemStyle = { fontSize: '14px', color: '#475569', marginBottom: '8px', lineHeight: '1.5' };
 const purpleBtnStyle = { backgroundColor: '#4f46e5', color: '#ffffff', border: 'none', padding: '14px 32px', borderRadius: '25px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' };
-const backLinkStyle = { background: 'none', border: 'none', color: '#6366f1', fontWeight: '600', fontSize: '14px', cursor: 'pointer', marginBottom: '20px', display: 'inline-block' };
-const examGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' };
+
+// TOP BAR & BACK BUTTON STYLES (Cleaned up alignment)
+const topNavRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '24px', minHeight: '36px' };
+const backLinkStyle = { background: 'none', border: 'none', color: '#6366f1', fontWeight: '600', fontSize: '14px', cursor: 'pointer', padding: '4px 0', margin: 0, display: 'inline-flex', alignItems: 'center' };
+const pathwayBadgeStyle = { backgroundColor: '#4f46e5', color: '#ffffff', padding: '6px 16px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', letterSpacing: '0.5px', display: 'inline-flex', alignItems: 'center' };
+
+const examGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' };
 const examCardStyle = { backgroundColor: '#ffffff', borderRadius: '12px', padding: '35px 25px', textAlign: 'center', border: '2px solid #e2e8f0', cursor: 'pointer' };
 const avatarStyle = { width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#e0e7ff', color: '#4338ca', fontWeight: '700', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto' };
 const examTitleStyle = { fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: '0 0 10px 0' };
 const examDescStyle = { fontSize: '13px', color: '#64748b', lineHeight: '1.5', margin: 0 };
-const topNavRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' };
-const pathwayBadgeStyle = { backgroundColor: '#4f46e5', color: '#ffffff', padding: '8px 18px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', letterSpacing: '0.5px' };
+
 const courseGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' };
 const courseCardStyle = { backgroundColor: '#ffffff', borderRadius: '12px', padding: '25px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' };
 const courseTitleStyle = { fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '0 0 12px 0' };
@@ -267,3 +385,24 @@ const durationBadgeStyle = { backgroundColor: '#f1f5f9', color: '#475569', fontS
 const courseDescStyle = { fontSize: '13px', color: '#64748b', lineHeight: '1.6', marginBottom: '20px' };
 const profileHeaderStyle = { fontSize: '11px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '8px' };
 const profileBadgeStyle = { backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', fontSize: '12px', padding: '4px 10px', borderRadius: '4px' };
+
+const starButtonStyle = {
+  position: 'absolute',
+  top: '16px',
+  right: '16px',
+  width: '36px',
+  height: '36px',
+  borderRadius: '50%',
+  border: '1px solid #e2e8f0',
+  backgroundColor: '#ffffff',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '16px',
+  cursor: 'pointer',
+  padding: 0,
+  lineHeight: '1',
+  zIndex: 10,
+  boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+};
