@@ -94,7 +94,7 @@ export default function App() {
            element={
           <SavedPathways 
           currentUser={currentUser} 
-           onOpenAuth={() => setShowAuthModal(true)} 
+               onOpenAuth={() => setShowAuthModal(true)} 
           />
            } 
         />
@@ -102,8 +102,8 @@ export default function App() {
           path="/profile" 
           element={
        <ProfilePage 
-         currentUser={currentUser} 
-         onUpdateUser={(updated) => setCurrentUser(updated)} 
+          currentUser={currentUser} 
+          onUpdateUser={(updated) => setCurrentUser(updated)} 
        />
        } 
       />

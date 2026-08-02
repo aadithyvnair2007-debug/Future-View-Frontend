@@ -25,6 +25,10 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
       const data = await res.json();
 
       if (res.ok) {
+        // Save the JWT token to localStorage so authorized routes (like AdminDashboard) can use it
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
         onLoginSuccess(data.user);
       } else {
         alert(data.error || 'Authentication failed');

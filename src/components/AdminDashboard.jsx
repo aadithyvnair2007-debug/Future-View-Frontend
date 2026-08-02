@@ -5,7 +5,20 @@ export default function AdminDashboard() {
   const [courses, setCourses] = useState([]);
   const [exams, setExams] = useState([]);
   const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalCourses: 0,
+    totalExams: 0,
+    popularBookmarks: []
+  });
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Pagination & Sorting States for Courses
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState('title');
+  const [order, setOrder] = useState('asc');
 
   // Course Form States
   const [courseTitle, setCourseTitle] = useState('');
@@ -23,17 +36,47 @@ export default function AdminDashboard() {
   const [examCategory, setExamCategory] = useState('');
   const [examDesc, setExamDesc] = useState('');
 
-  // Fetch Data on Mount
+  // Helper function to get auth headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+  };
+
+  // Fetch Data on Mount and when pagination/sorting/search changes
   useEffect(() => {
-    fetchCourses();
     fetchExams();
     fetchUsers();
+    fetchStats();
   }, []);
 
+  useEffect(() => {
+    fetchCourses();
+  }, [page, sortBy, order, searchTerm]);
+
   const fetchCourses = () => {
-    fetch('http://localhost:3010/api/courses')
+    const params = new URLSearchParams({
+      page,
+      limit,
+      sortBy,
+      order,
+      ...(searchTerm ? { search: searchTerm } : {})
+    });
+
+    fetch(`http://localhost:3010/api/courses?${params.toString()}`)
       .then((res) => res.json())
-      .then((data) => setCourses(Array.isArray(data) ? data : []))
+      .then((data) => {
+        // Handles both legacy arrays and structured server-side paginated responses
+        if (Array.isArray(data)) {
+          setCourses(data);
+          setTotalPages(1);
+        } else {
+          setCourses(data.courses || data.data || []);
+          setTotalPages(data.totalPages || 1);
+        }
+      })
       .catch((err) => console.error('Error fetching courses:', err));
   };
 
@@ -45,11 +88,36 @@ export default function AdminDashboard() {
   };
 
   const fetchUsers = () => {
-    // Corrected Endpoint URL to match server.js
-    fetch('http://localhost:3010/api/admin/users')
+    fetch('http://localhost:3010/api/admin/users', {
+      headers: getAuthHeaders()
+    })
       .then((res) => res.json())
       .then((data) => setUsers(Array.isArray(data) ? data : []))
       .catch((err) => console.error('Error fetching users:', err));
+  };
+
+  const fetchStats = () => {
+    fetch('http://localhost:3010/api/admin/stats', {
+      headers: getAuthHeaders()
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.stats) {
+          setStats(data.stats);
+        }
+      })
+      .catch((err) => console.error('Error fetching admin stats:', err));
+  };
+
+  // Handle Column Sorting Click
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setOrder(order === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setOrder('asc');
+    }
+    setPage(1); // Reset to page 1 on new sort
   };
 
   // Open Edit Modal
@@ -102,12 +170,13 @@ export default function AdminDashboard() {
 
     fetch(url, {
       method: isEdit ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(coursePayload),
     })
       .then((res) => res.json())
       .then(() => {
         fetchCourses();
+        fetchStats();
         handleCloseModal();
       })
       .catch((err) => console.error('Error saving course:', err));
@@ -116,18 +185,24 @@ export default function AdminDashboard() {
   // Delete Course
   const handleDeleteCourse = (id) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
-      fetch(`http://localhost:3010/api/courses/${id}`, { method: 'DELETE' })
-        .then(() => fetchCourses())
+      fetch(`http://localhost:3010/api/courses/${id}`, { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      })
+        .then(() => {
+          fetchCourses();
+          fetchStats();
+        })
         .catch((err) => console.error('Error deleting course:', err));
     }
   };
 
-  // Add Exam (With Category)
+  // Add Exam
   const handleExamSubmit = (e) => {
     e.preventDefault();
     fetch('http://localhost:3010/api/exams', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         name: examName.toUpperCase().trim(),
         category: examCategory.trim(),
@@ -137,6 +212,7 @@ export default function AdminDashboard() {
       .then((res) => res.json())
       .then(() => {
         fetchExams();
+        fetchStats();
         setExamName('');
         setExamCategory('');
         setExamDesc('');
@@ -147,8 +223,14 @@ export default function AdminDashboard() {
   // Delete Exam
   const handleDeleteExam = (id) => {
     if (window.confirm('Are you sure you want to delete this exam?')) {
-      fetch(`http://localhost:3010/api/exams/${id}`, { method: 'DELETE' })
-        .then(() => fetchExams())
+      fetch(`http://localhost:3010/api/exams/${id}`, { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      })
+        .then(() => {
+          fetchExams();
+          fetchStats();
+        })
         .catch((err) => console.error('Error deleting exam:', err));
     }
   };
@@ -156,25 +238,53 @@ export default function AdminDashboard() {
   // Delete User
   const handleDeleteUser = (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      fetch(`http://localhost:3010/api/admin/users/${id}`, { method: 'DELETE' })
-        .then(() => fetchUsers())
+      fetch(`http://localhost:3010/api/admin/users/${id}`, { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      })
+        .then(() => {
+          fetchUsers();
+          fetchStats();
+        })
         .catch((err) => console.error('Error deleting user:', err));
     }
   };
 
-  // Live Filtered Courses
-  const filteredCourses = courses.filter((c) => {
-    const term = searchTerm.toLowerCase();
-    const title = (c.title || c.courseName || c.name || '').toLowerCase();
-    const category = (c.category || c.courseCategory || c.stream || c.type || '').toLowerCase();
-    const examsStr = Array.isArray(c.exams) ? c.exams.join(' ').toLowerCase() : (c.exams || '').toLowerCase();
-
-    return title.includes(term) || category.includes(term) || examsStr.includes(term);
-  });
-
   return (
     <div style={containerStyle}>
       <h1 style={{ fontSize: '28px', color: '#0f172a', marginBottom: '20px' }}>Admin Control Panel</h1>
+
+      {/* ================= ANALYTICS METRICS CARDS ================= */}
+      <div style={metricsGridStyle}>
+        <div style={metricCardStyle}>
+          <span style={metricTitleStyle}>Registered Users</span>
+          <span style={metricValueStyle}>{stats.totalUsers}</span>
+        </div>
+        <div style={metricCardStyle}>
+          <span style={metricTitleStyle}>Total Courses</span>
+          <span style={metricValueStyle}>{stats.totalCourses}</span>
+        </div>
+        <div style={metricCardStyle}>
+          <span style={metricTitleStyle}>Entrance Exams</span>
+          <span style={metricValueStyle}>{stats.totalExams}</span>
+        </div>
+      </div>
+
+      {/* Popular Bookmarks Summary Box */}
+      <div style={popularBoxStyle}>
+        <h4 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>⭐ Most Popular Bookmarked Pathways</h4>
+        {stats.popularBookmarks && stats.popularBookmarks.length > 0 ? (
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            {stats.popularBookmarks.map((item, index) => (
+              <span key={index} style={bookmarkBadgeStyle}>
+                {item._id || 'Pathway'}: <strong>{item.bookmarkCount} saves</strong>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>No bookmark analytics recorded yet.</p>
+        )}
+      </div>
 
       {/* Navigation Tabs */}
       <div style={tabRowStyle}>
@@ -182,7 +292,7 @@ export default function AdminDashboard() {
           style={activeTab === 'courses' ? activeTabStyle : tabStyle}
           onClick={() => setActiveTab('courses')}
         >
-          Manage Courses ({courses.length})
+          Manage Courses
         </button>
         <button
           style={activeTab === 'exams' ? activeTabStyle : tabStyle}
@@ -201,13 +311,15 @@ export default function AdminDashboard() {
       {/* ================= COURSES TAB ================= */}
       {activeTab === 'courses' && (
         <div>
-          {/* Controls Header: Search & Add Button */}
           <div style={controlsHeaderStyle}>
             <input
               type="text"
-              placeholder="🔍 Search courses by title, category, or exam..."
+              placeholder="🔍 Search courses..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1); // Reset to page 1 on search change
+              }}
               style={searchInputStyle}
             />
             <button style={primaryBtnStyle} onClick={() => setEditingCourse('new')}>
@@ -215,39 +327,71 @@ export default function AdminDashboard() {
             </button>
           </div>
 
-          {/* Courses Table */}
           <div style={tableWrapperStyle}>
             <table style={tableStyle}>
               <thead>
                 <tr style={tableHeaderStyle}>
-                  <th style={thStyle}>Course Title</th>
-                  <th style={thStyle}>Category</th>
+                  <th style={thSortableStyle} onClick={() => handleSort('title')}>
+                    Course Title {sortBy === 'title' ? (order === 'asc' ? '▲' : '▼') : ''}
+                  </th>
+                  <th style={thSortableStyle} onClick={() => handleSort('category')}>
+                    Category {sortBy === 'category' ? (order === 'asc' ? '▲' : '▼') : ''}
+                  </th>
                   <th style={thStyle}>Duration</th>
                   <th style={thStyle}>Exams Applicable</th>
                   <th style={{ ...thStyle, textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCourses.map((c) => (
-                  <tr key={c._id || c.id} style={trStyle}>
-                    <td style={{ ...tdStyle, fontWeight: '600' }}>{c.title || c.courseName || c.name}</td>
-                    <td style={tdStyle}>{c.category || c.courseCategory || c.stream || c.type || 'N/A'}</td>
-                    <td style={tdStyle}>{c.duration || 'N/A'}</td>
-                    <td style={tdStyle}>
-                      {Array.isArray(c.exams) ? c.exams.join(', ') : c.exams || 'N/A'}
-                    </td>
-                    <td style={{ ...tdStyle, textAlign: 'center' }}>
-                      <button style={editBtnStyle} onClick={() => handleOpenEditModal(c)}>
-                        Edit
-                      </button>
-                      <button style={deleteBtnStyle} onClick={() => handleDeleteCourse(c._id || c.id)}>
-                        Delete
-                      </button>
+                {courses.length > 0 ? (
+                  courses.map((c) => (
+                    <tr key={c._id || c.id} style={trStyle}>
+                      <td style={{ ...tdStyle, fontWeight: '600' }}>{c.title || c.courseName || c.name}</td>
+                      <td style={tdStyle}>{c.category || c.courseCategory || c.stream || c.type || 'N/A'}</td>
+                      <td style={tdStyle}>{c.duration || 'N/A'}</td>
+                      <td style={tdStyle}>
+                        {Array.isArray(c.exams) ? c.exams.join(', ') : c.exams || 'N/A'}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        <button style={editBtnStyle} onClick={() => handleOpenEditModal(c)}>
+                          Edit
+                        </button>
+                        <button style={deleteBtnStyle} onClick={() => handleDeleteCourse(c._id || c.id)}>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                      No courses found.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div style={paginationContainerStyle}>
+            <button
+              style={pageButtonStyles(page === 1)}
+              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </button>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#475569' }}>
+              Page {page} of {totalPages || 1}
+            </span>
+            <button
+              style={pageButtonStyles(page >= totalPages)}
+              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={page >= totalPages}
+            >
+              Next
+            </button>
           </div>
         </div>
       )}
@@ -456,6 +600,13 @@ export default function AdminDashboard() {
 
 // ================= STYLES =================
 const containerStyle = { padding: '40px 20px', maxWidth: '1100px', margin: '0 auto', fontFamily: 'Inter, sans-serif' };
+const metricsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' };
+const metricCardStyle = { backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' };
+const metricTitleStyle = { fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' };
+const metricValueStyle = { fontSize: '28px', fontWeight: '800', color: '#0f172a' };
+const popularBoxStyle = { backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '25px' };
+const bookmarkBadgeStyle = { backgroundColor: '#e0e7ff', color: '#3730a3', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500' };
+
 const tabRowStyle = { display: 'flex', gap: '10px', marginBottom: '25px' };
 const tabStyle = { padding: '10px 20px', border: '1px solid #cbd5e1', backgroundColor: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', color: '#475569' };
 const activeTabStyle = { ...tabStyle, backgroundColor: '#4f46e5', color: '#fff', borderColor: '#4f46e5' };
@@ -467,6 +618,7 @@ const tableWrapperStyle = { backgroundColor: '#fff', borderRadius: '12px', borde
 const tableStyle = { width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' };
 const tableHeaderStyle = { backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' };
 const thStyle = { padding: '14px 18px', color: '#475569', fontWeight: '700' };
+const thSortableStyle = { ...thStyle, cursor: 'pointer', userSelect: 'none' };
 const trStyle = { borderBottom: '1px solid #f1f5f9' };
 const tdStyle = { padding: '14px 18px', color: '#334155' };
 const editBtnStyle = { backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', marginRight: '6px' };
@@ -480,3 +632,13 @@ const modalBackdropStyle = { position: 'fixed', top: 0, left: 0, width: '100vw',
 const modalContentStyle = { backgroundColor: '#fff', width: '100%', maxWidth: '600px', borderRadius: '16px', padding: '30px', maxHeight: '90vh', overflowY: 'auto' };
 const adminBadgeStyle = { backgroundColor: '#fef3c7', color: '#d97706', fontSize: '12px', fontWeight: '700', padding: '4px 10px', borderRadius: '4px' };
 const userBadgeStyle = { backgroundColor: '#f1f5f9', color: '#475569', fontSize: '12px', fontWeight: '600', padding: '4px 10px', borderRadius: '4px' };
+const paginationContainerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '0 5px' };
+const pageButtonStyles = (isDisabled) => ({
+  backgroundColor: isDisabled ? '#cbd5e1' : '#4f46e5',
+  color: '#fff',
+  border: 'none',
+  padding: '8px 16px',
+  borderRadius: '6px',
+  fontWeight: '600',
+  cursor: isDisabled ? 'not-allowed' : 'pointer'
+});
