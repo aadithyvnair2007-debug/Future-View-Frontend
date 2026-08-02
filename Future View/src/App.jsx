@@ -1,51 +1,124 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import View from './components/View';
+import AdminDashboard from './components/AdminDashboard';
+import AuthModal from './components/AuthModal';
+import CourseCompare from './components/CourseCompare';
+import StreamMatcher from './components/StreamMatcher';
+import SavedPathways from './components/SavedPathways';
+import ProfilePage from './components/ProfilePage';
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+export default function App() {
+  const navigate = useNavigate();
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  // 1. Initialize currentUser from localStorage
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // 2. Lift step state to App level so Navbar and View stay synchronized
+  const [step, setStep] = useState('intro');
+
+  // 3. Keep localStorage synced whenever currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('currentUser');
+    }
+  }, [currentUser]);
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
+    setStep('intro');
+    navigate('/'); // Smooth client-side navigation instead of hard reload
+  };
+
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin === true;
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <div>
+      {/* NAVBAR WITH STEP CONTROL */}
+      <Navbar 
+        currentUser={currentUser} 
+        onOpenAuth={() => setShowAuthModal(true)} 
+        onLogout={handleLogout} 
+        step={step}
+        setStep={setStep}
+      />
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+      <Routes>
+        {/* MAIN USER VIEW */}
+        <Route 
+          path="/" 
+          element={
+            <View 
+              currentUser={currentUser} 
+              onOpenAuth={() => setShowAuthModal(true)} 
+              step={step}
+              setStep={setStep}
+            />
+          } 
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+
+        {/* COURSE COMPARE ROUTE (PHASE 2) */}
+        <Route 
+          path="/compare" 
+          element={<CourseCompare />} 
+        />
+
+        {/* STREAM MATCHER ROUTE (PHASE 3) */}
+        <Route 
+          path="/stream-matcher" 
+          element={<StreamMatcher />} 
+        />
+
+        {/* PROTECTED ADMIN ROUTE */}
+        <Route 
+          path="/admin" 
+          element={
+            isAdmin ? (
+              <AdminDashboard currentUser={currentUser} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
+        <Route 
+           path="/saved" 
+           element={
+          <SavedPathways 
+          currentUser={currentUser} 
+               onOpenAuth={() => setShowAuthModal(true)} 
+          />
+           } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+       <ProfilePage 
+          currentUser={currentUser} 
+          onUpdateUser={(updated) => setCurrentUser(updated)} 
+       />
+       } 
+      />
+      </Routes>
+
+      {/* AUTH MODAL */}
+      {showAuthModal && (
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)} 
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            setShowAuthModal(false);
+          }} 
+        />
+      )}
+    </div>
   );
 }
-
-export default App;
