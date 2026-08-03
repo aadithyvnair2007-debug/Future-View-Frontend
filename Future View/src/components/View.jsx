@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import logo from "../Future-View.png";
+import API_BASE_URL from '../utils/api';
 
 export default function View({ currentUser, onOpenAuth, step = 'intro', setStep }) {
   const [pendingExplore, setPendingExplore] = useState(false);
@@ -64,7 +65,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
 
   // Fetch Welcome Info
   useEffect(() => {
-    fetch('http://localhost:3010/api/welcome')
+    fetch(`${API_BASE_URL}/api/welcome`)
       .then(res => res.json())
       .then(data => setWelcomeInfo(data))
       .catch(err => console.error("Error fetching welcome info:", err));
@@ -72,7 +73,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
 
   // Fetch Exams List
   useEffect(() => {
-    fetch('http://localhost:3010/api/exams')
+    fetch(`${API_BASE_URL}/api/exams`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
@@ -95,7 +96,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
   useEffect(() => {
     const userId = currentUser?._id || currentUser?.id;
     if (userId && !isAdmin) {
-      fetch(`http://localhost:3010/api/users/${userId}/bookmarks`)
+      fetch(`${API_BASE_URL}/api/users/${userId}/bookmarks`)
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data)) setUserBookmarks(data);
@@ -126,7 +127,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       category: item.category || 'General'
     };
 
-    fetch(`http://localhost:3010/api/users/${userId}/bookmarks`, {
+    fetch(`${API_BASE_URL}/api/users/${userId}/bookmarks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -159,7 +160,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
     setSelectedCategory('All');
     setSortBy('az');
 
-    fetch(`http://localhost:3010/api/pathway/${examName.toLowerCase()}`)
+    fetch(`${API_BASE_URL}/api/pathway/${examName.toLowerCase()}`)
       .then(res => res.json())
       .then(data => {
         setCourses(data.courses || []);
@@ -554,7 +555,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
                   : Array.isArray(course.potentialProfiles) && course.potentialProfiles.length > 0 
                   ? course.potentialProfiles 
                   : typeof course.potentialProfiles === 'string' 
-                  ? course.potentialProfiles.split(',').map(s => s.trim())
+                  ? course.potentialProfiles.split(',').map(s => s.trim()) 
                   : [];
 
                 return (
@@ -713,20 +714,20 @@ const examCardStyle = { borderRadius: '16px', padding: '28px', cursor: 'pointer'
 const starButtonStyle = { position: 'absolute', top: '16px', right: '16px', background: 'none', border: '1px solid', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px' };
 const avatarStyle = { width: '48px', height: '48px', borderRadius: '12px', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '20px', marginBottom: '16px' };
 const examTitleStyle = { fontSize: '18px', fontWeight: '700', marginBottom: '8px' };
-const examDescStyle = { fontSize: '14px', lineHeight: '1.5', margin: 0 };
-const pathwayBadgeStyle = { background: '#ede9fe', color: '#6d28d9', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' };
-const exportBtnStyle = { backgroundColor: '#4f46e5', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' };
-const filterBarContainerStyle = { display: 'flex', gap: '12px', width: '100%', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' };
-const selectDropdownStyle = { padding: '12px 16px', borderRadius: '10px', border: '1px solid', fontSize: '14px', outline: 'none', backgroundColor: '#ffffff', cursor: 'pointer' };
+const examDescStyle = { fontSize: '14px', lineHeight: '1.6' };
+const exportBtnStyle = { background: '#4f46e5', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' };
+const pathwayBadgeStyle = { background: '#e0e7ff', color: '#4f46e5', padding: '8px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '12px' };
+const filterBarContainerStyle = { display: 'flex', gap: '12px', width: '100%', marginBottom: '24px', flexWrap: 'wrap' };
+const selectDropdownStyle = { padding: '12px 16px', borderRadius: '10px', border: '1px solid', fontSize: '14px', outline: 'none', cursor: 'pointer' };
 const courseGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', width: '100%' };
-const courseCardStyle = { borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box', transition: 'transform 0.2s ease' };
-const courseTitleStyle = { fontSize: '17px', fontWeight: '700', marginBottom: '8px', lineHeight: '1.4' };
+const courseCardStyle = { borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s ease' };
+const courseTitleStyle = { fontSize: '17px', fontWeight: '700', marginBottom: '10px' };
 const badgeRowStyle = { display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' };
 const categoryBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase' };
 const durationBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600' };
 const courseDescStyle = { fontSize: '13px', lineHeight: '1.5', margin: '0 0 16px 0' };
-const profileHeaderStyle = { fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', marginBottom: '6px', textTransform: 'uppercase' };
-const profileBadgeStyle = { fontSize: '11px', fontWeight: '600', padding: '4px 8px', borderRadius: '6px', border: '1px solid' };
+const profileHeaderStyle = { fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', marginBottom: '6px' };
+const profileBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '500', border: '1px solid' };
 const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' };
-const modalContentStyle = { borderRadius: '16px', padding: '32px', maxWidth: '550px', width: '100%', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' };
-const modalCloseBtnStyle = { position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', fontSize: '24px', fontWeight: '700', cursor: 'pointer', lineHeight: 1 };
+const modalContentStyle = { borderRadius: '16px', padding: '30px', maxWidth: '600px', width: '100%', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' };
+const modalCloseBtnStyle = { position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', fontWeight: '700' };
