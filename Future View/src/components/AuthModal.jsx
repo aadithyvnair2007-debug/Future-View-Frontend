@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-
-const API_BASE = 'https://future-view.onrender.com';
+import API_BASE_URL from '../utils/api';
 
 export default function AuthModal({ onClose, onLoginSuccess }) {
   const [isSignup, setIsSignup] = useState(false);
@@ -19,7 +18,7 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
       : { email, password };
 
     try {
-      const res = await fetch(`${API_BASE}${endpoint}`, {
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
