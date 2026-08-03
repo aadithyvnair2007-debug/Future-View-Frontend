@@ -46,9 +46,7 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout, step, setSte
         <div className="flex items-center gap-4 pl-4">
  
   
-  <span className="text-2xl font-extrabold tracking-wider bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-    FUTURE VIEW
-  </span>
+  <span className="text-white font-bold text-lg tracking-wide">FUTURE VIEW</span>
 </div>
 
         {/* ================= FAR RIGHT: LINKS & ACTIONS ================= */}
