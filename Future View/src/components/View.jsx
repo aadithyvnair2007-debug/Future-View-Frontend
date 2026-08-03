@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import futureViewLogo from 'C:/Users/lenovo/Desktop/ICT/project/Frontend/src/Future-View.png';
+import logo from "../Future-View.png";
 
 export default function View({ currentUser, onOpenAuth, step = 'intro', setStep }) {
   const [pendingExplore, setPendingExplore] = useState(false);
