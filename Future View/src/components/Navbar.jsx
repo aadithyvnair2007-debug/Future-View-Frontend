@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logo from 'C:/Users/lenovo/Desktop/ICT/project/Frontend/src/Future-View.png'; // Import your logo image
+import logo from "../Future-View.png";
 
 export default function Navbar({ currentUser, onOpenAuth, onLogout, step, setStep }) {
   const navigate = useNavigate();
