@@ -66,13 +66,13 @@ export default function App() {
           } 
         />
 
-        {/* COURSE COMPARE ROUTE (PHASE 2) */}
+        {/* COURSE COMPARE ROUTE */}
         <Route 
           path="/compare" 
           element={<CourseCompare />} 
         />
 
-        {/* STREAM MATCHER ROUTE (PHASE 3) */}
+        {/* STREAM MATCHER ROUTE */}
         <Route 
           path="/stream-matcher" 
           element={<StreamMatcher />} 
@@ -89,24 +89,28 @@ export default function App() {
             )
           } 
         />
+
+        {/* SAVED PATHWAYS ROUTE */}
         <Route 
            path="/saved" 
            element={
-          <SavedPathways 
-          currentUser={currentUser} 
+             <SavedPathways 
+               currentUser={currentUser} 
                onOpenAuth={() => setShowAuthModal(true)} 
-          />
+             />
            } 
         />
+
+        {/* PROFILE PAGE ROUTE */}
         <Route 
           path="/profile" 
           element={
-       <ProfilePage 
-          currentUser={currentUser} 
-          onUpdateUser={(updated) => setCurrentUser(updated)} 
-       />
-       } 
-      />
+            <ProfilePage 
+              currentUser={currentUser} 
+              onUpdateUser={(updated) => setCurrentUser(updated)} 
+            />
+          } 
+        />
       </Routes>
 
       {/* AUTH MODAL */}

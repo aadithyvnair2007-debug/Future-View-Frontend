@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = 'https://future-view.onrender.com/api'; //
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('courses');
   const [courses, setCourses] = useState([]);
@@ -65,10 +67,9 @@ export default function AdminDashboard() {
       ...(searchTerm ? { search: searchTerm } : {})
     });
 
-    fetch(`http://localhost:3010/api/courses?${params.toString()}`)
+    fetch(`${API_BASE}/courses?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
-        // Handles both legacy arrays and structured server-side paginated responses
         if (Array.isArray(data)) {
           setCourses(data);
           setTotalPages(1);
@@ -81,14 +82,14 @@ export default function AdminDashboard() {
   };
 
   const fetchExams = () => {
-    fetch('http://localhost:3010/api/exams')
+    fetch(`${API_BASE}/exams`)
       .then((res) => res.json())
       .then((data) => setExams(Array.isArray(data) ? data : []))
       .catch((err) => console.error('Error fetching exams:', err));
   };
 
   const fetchUsers = () => {
-    fetch('http://localhost:3010/api/admin/users', {
+    fetch(`${API_BASE}/admin/users`, {
       headers: getAuthHeaders()
     })
       .then((res) => res.json())
@@ -97,7 +98,7 @@ export default function AdminDashboard() {
   };
 
   const fetchStats = () => {
-    fetch('http://localhost:3010/api/admin/stats', {
+    fetch(`${API_BASE}/admin/stats`, {
       headers: getAuthHeaders()
     })
       .then((res) => res.json())
@@ -165,8 +166,8 @@ export default function AdminDashboard() {
 
     const isEdit = !!editingCourse && editingCourse !== 'new';
     const url = isEdit
-      ? `http://localhost:3010/api/courses/${editingCourse._id || editingCourse.id}`
-      : 'http://localhost:3010/api/courses';
+      ? `${API_BASE}/courses/${editingCourse._id || editingCourse.id}`
+      : `${API_BASE}/courses`;
 
     fetch(url, {
       method: isEdit ? 'PUT' : 'POST',
@@ -185,7 +186,7 @@ export default function AdminDashboard() {
   // Delete Course
   const handleDeleteCourse = (id) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
-      fetch(`http://localhost:3010/api/courses/${id}`, { 
+      fetch(`${API_BASE}/courses/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -200,7 +201,7 @@ export default function AdminDashboard() {
   // Add Exam
   const handleExamSubmit = (e) => {
     e.preventDefault();
-    fetch('http://localhost:3010/api/exams', {
+    fetch(`${API_BASE}/exams`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -223,7 +224,7 @@ export default function AdminDashboard() {
   // Delete Exam
   const handleDeleteExam = (id) => {
     if (window.confirm('Are you sure you want to delete this exam?')) {
-      fetch(`http://localhost:3010/api/exams/${id}`, { 
+      fetch(`${API_BASE}/exams/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -238,7 +239,7 @@ export default function AdminDashboard() {
   // Delete User
   const handleDeleteUser = (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      fetch(`http://localhost:3010/api/admin/users/${id}`, { 
+      fetch(`${API_BASE}/admin/users/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })

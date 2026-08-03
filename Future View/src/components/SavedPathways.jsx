@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = 'https://future-view.onrender.com';
+
 export default function SavedPathways({ currentUser, onOpenAuth }) {
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +14,7 @@ export default function SavedPathways({ currentUser, onOpenAuth }) {
       return;
     }
 
-    fetch(`http://localhost:3010/api/users/${userId}/bookmarks`)
+    fetch(`${API_BASE}/api/users/${userId}/bookmarks`)
       .then((res) => res.json())
       .then((data) => {
         setBookmarks(Array.isArray(data) ? data : []);
@@ -25,7 +27,7 @@ export default function SavedPathways({ currentUser, onOpenAuth }) {
   }, [userId]);
 
   const handleRemoveBookmark = (itemId) => {
-    fetch(`http://localhost:3010/api/users/${userId}/bookmarks`, {
+    fetch(`${API_BASE}/api/users/${userId}/bookmarks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ itemId }),

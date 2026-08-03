@@ -466,7 +466,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
           <div className="print-header" style={{ display: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <img 
-                src={futureViewLogo} 
+                src={logo} 
                 alt="Future View Logo"
                 style={{ 
                   width: '42px', 
@@ -714,22 +714,19 @@ const starButtonStyle = { position: 'absolute', top: '16px', right: '16px', back
 const avatarStyle = { width: '48px', height: '48px', borderRadius: '12px', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '20px', marginBottom: '16px' };
 const examTitleStyle = { fontSize: '18px', fontWeight: '700', marginBottom: '8px' };
 const examDescStyle = { fontSize: '14px', lineHeight: '1.5', margin: 0 };
-
-const exportBtnStyle = { backgroundColor: '#10b981', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' };
-const pathwayBadgeStyle = { backgroundColor: '#e0e7ff', color: '#4f46e5', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' };
-const filterBarContainerStyle = { display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' };
-const selectDropdownStyle = { padding: '12px 16px', borderRadius: '10px', border: '1px solid', fontSize: '14px', outline: 'none', cursor: 'pointer' };
-
+const pathwayBadgeStyle = { background: '#ede9fe', color: '#6d28d9', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' };
+const exportBtnStyle = { backgroundColor: '#4f46e5', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' };
+const filterBarContainerStyle = { display: 'flex', gap: '12px', width: '100%', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' };
+const selectDropdownStyle = { padding: '12px 16px', borderRadius: '10px', border: '1px solid', fontSize: '14px', outline: 'none', backgroundColor: '#ffffff', cursor: 'pointer' };
 const courseGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', width: '100%' };
-const courseCardStyle = { borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s ease, box-shadow 0.2s ease' };
-const courseTitleStyle = { fontSize: '18px', fontWeight: '700', marginBottom: '12px' };
+const courseCardStyle = { borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box', transition: 'transform 0.2s ease' };
+const courseTitleStyle = { fontSize: '17px', fontWeight: '700', marginBottom: '8px', lineHeight: '1.4' };
 const badgeRowStyle = { display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' };
-const categoryBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '600' };
-const durationBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '600' };
-const courseDescStyle = { fontSize: '14px', lineHeight: '1.5', margin: '0 0 16px 0' };
-const profileHeaderStyle = { fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', marginBottom: '8px' };
-const profileBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', border: '1px solid' };
-
+const categoryBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase' };
+const durationBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600' };
+const courseDescStyle = { fontSize: '13px', lineHeight: '1.5', margin: '0 0 16px 0' };
+const profileHeaderStyle = { fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', marginBottom: '6px', textTransform: 'uppercase' };
+const profileBadgeStyle = { fontSize: '11px', fontWeight: '600', padding: '4px 8px', borderRadius: '6px', border: '1px solid' };
 const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' };
-const modalContentStyle = { borderRadius: '16px', padding: '30px', maxWidth: '600px', width: '100%', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' };
-const modalCloseBtnStyle = { position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', lineHeight: '1' };
+const modalContentStyle = { borderRadius: '16px', padding: '32px', maxWidth: '550px', width: '100%', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' };
+const modalCloseBtnStyle = { position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', fontSize: '24px', fontWeight: '700', cursor: 'pointer', lineHeight: 1 };
