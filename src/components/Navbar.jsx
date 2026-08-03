@@ -36,17 +36,13 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout, step, setSte
       <div style={navInnerStyle}>
         
         {/* ================= FAR LEFT: LOGO ================= */}
-        <div style={brandStyle} onClick={handleHomeClick}>
-          <img 
-            src={logo} 
-            alt="Future View" 
-            style={{ height: '42px', width: 'auto', objectFit: 'contain' }} 
-          />
-        </div> 
-        <div className="flex items-center gap-4 pl-4">
- 
-  
-  <span className="text-2xl font-extrabold tracking-wider bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+       <div style={brandStyle} onClick={handleHomeClick}>
+  <img
+    src={logo}
+    alt="Future View"
+    style={{ height: '42px', width: 'auto', objectFit: 'contain' }}
+  />
+  <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '1.125rem', marginLeft: '10px', letterSpacing: '0.05em' }}>
     FUTURE VIEW
   </span>
 </div>
