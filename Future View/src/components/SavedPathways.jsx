@@ -14,7 +14,7 @@ export default function SavedPathways({ currentUser, onOpenAuth }) {
       return;
     }
 
-    fetch(`${API_BASE}/api/users/${userId}/bookmarks`)
+    apiFetch(`${API_BASE}/api/users/${userId}/bookmarks`)
       .then((res) => res.json())
       .then((data) => {
         setBookmarks(Array.isArray(data) ? data : []);
@@ -27,7 +27,7 @@ export default function SavedPathways({ currentUser, onOpenAuth }) {
   }, [userId]);
 
   const handleRemoveBookmark = (itemId) => {
-    fetch(`${API_BASE}/api/users/${userId}/bookmarks`, {
+    apiFetch(`${API_BASE}/api/users/${userId}/bookmarks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ itemId }),

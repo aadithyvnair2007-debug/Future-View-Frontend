@@ -65,7 +65,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
 
   // Fetch Welcome Info
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/welcome`)
+    apiFetch(`${API_BASE_URL}/api/welcome`)
       .then(res => res.json())
       .then(data => setWelcomeInfo(data))
       .catch(err => console.error("Error fetching welcome info:", err));
@@ -73,7 +73,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
 
   // Fetch Exams List
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/exams`)
+    apiFetch(`${API_BASE_URL}/api/exams`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
@@ -96,7 +96,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
   useEffect(() => {
     const userId = currentUser?._id || currentUser?.id;
     if (userId && !isAdmin) {
-      fetch(`${API_BASE_URL}/api/users/${userId}/bookmarks`)
+      apiFetch(`${API_BASE_URL}/api/users/${userId}/bookmarks`)
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data)) setUserBookmarks(data);
@@ -127,7 +127,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       category: item.category || 'General'
     };
 
-    fetch(`${API_BASE_URL}/api/users/${userId}/bookmarks`, {
+    apiFetch(`${API_BASE_URL}/api/users/${userId}/bookmarks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -160,7 +160,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
     setSelectedCategory('All');
     setSortBy('az');
 
-    fetch(`${API_BASE_URL}/api/pathway/${examName.toLowerCase()}`)
+    apiFetch(`${API_BASE_URL}/api/pathway/${examName.toLowerCase()}`)
       .then(res => res.json())
       .then(data => {
         setCourses(data.courses || []);

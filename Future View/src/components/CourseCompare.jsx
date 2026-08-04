@@ -11,7 +11,7 @@ export default function CourseCompare() {
   const [comparedCourses, setComparedCourses] = useState([null, null, null]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/courses`)
+    apiFetch(`${API_BASE}/api/courses`)
       .then((res) => res.json())
       .then((data) => {
         const courseList = Array.isArray(data) ? data : [];
