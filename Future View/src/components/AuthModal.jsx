@@ -18,14 +18,13 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
       : { email, password };
 
     try {
-      // apiFetch automatically handles the base URL, parses JSON, and throws on error
       const data = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      // Save the JWT token to localStorage so authorized routes (like AdminDashboard) can use it
+      // Save the JWT token to localStorage so authorized routes can use it
       if (data.token) {
         localStorage.setItem('token', data.token);
       }
