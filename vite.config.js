@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3010', // Change 5000 to your Node/Express backend port
+        target: '', // Change 5000 to your Node/Express backend port
         changeOrigin: true,
         secure: false,
       },

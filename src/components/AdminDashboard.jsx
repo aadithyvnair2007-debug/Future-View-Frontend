@@ -65,7 +65,7 @@ export default function AdminDashboard() {
       ...(searchTerm ? { search: searchTerm } : {})
     });
 
-    fetch(`http://localhost:3010/api/courses?${params.toString()}`)
+    apiFetch(`/api/courses?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         // Handles both legacy arrays and structured server-side paginated responses
@@ -81,14 +81,14 @@ export default function AdminDashboard() {
   };
 
   const fetchExams = () => {
-    fetch('http://localhost:3010/api/exams')
+    apiapiFetch(/api/exams')
       .then((res) => res.json())
       .then((data) => setExams(Array.isArray(data) ? data : []))
       .catch((err) => console.error('Error fetching exams:', err));
   };
 
   const fetchUsers = () => {
-    fetch('http://localhost:3010/api/admin/users', {
+    apiapiFetch(/api/admin/users', {
       headers: getAuthHeaders()
     })
       .then((res) => res.json())
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
   };
 
   const fetchStats = () => {
-    fetch('http://localhost:3010/api/admin/stats', {
+    apiapiFetch(/api/admin/stats', {
       headers: getAuthHeaders()
     })
       .then((res) => res.json())
@@ -165,10 +165,10 @@ export default function AdminDashboard() {
 
     const isEdit = !!editingCourse && editingCourse !== 'new';
     const url = isEdit
-      ? `http://localhost:3010/api/courses/${editingCourse._id || editingCourse.id}`
-      : 'http://localhost:3010/api/courses';
+      ? `/api/courses/${editingCourse._id || editingCourse.id}`
+      : '/api/courses';
 
-    fetch(url, {
+    apiFetch(url, {
       method: isEdit ? 'PUT' : 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(coursePayload),
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
   // Delete Course
   const handleDeleteCourse = (id) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
-      fetch(`http://localhost:3010/api/courses/${id}`, { 
+      apiFetch(`/api/courses/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
   // Add Exam
   const handleExamSubmit = (e) => {
     e.preventDefault();
-    fetch('http://localhost:3010/api/exams', {
+    apiapiFetch(/api/exams', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
   // Delete Exam
   const handleDeleteExam = (id) => {
     if (window.confirm('Are you sure you want to delete this exam?')) {
-      fetch(`http://localhost:3010/api/exams/${id}`, { 
+      apiFetch(`/api/exams/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
   // Delete User
   const handleDeleteUser = (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      fetch(`http://localhost:3010/api/admin/users/${id}`, { 
+      apiFetch(`/api/admin/users/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })

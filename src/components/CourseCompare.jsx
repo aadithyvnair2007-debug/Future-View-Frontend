@@ -9,7 +9,7 @@ export default function CourseCompare() {
   const [comparedCourses, setComparedCourses] = useState([null, null, null]);
 
   useEffect(() => {
-    fetch('http://localhost:3010/api/courses')
+    apiapiFetch(/api/courses')
       .then((res) => res.json())
       .then((data) => {
         const courseList = Array.isArray(data) ? data : [];
