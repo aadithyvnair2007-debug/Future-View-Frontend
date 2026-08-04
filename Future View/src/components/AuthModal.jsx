@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import API_BASE_URL from '../utils/api';
+import { apiFetch } from '../utils/api';
 
 export default function AuthModal({ onClose, onLoginSuccess }) {
   const [isSignup, setIsSignup] = useState(false);
@@ -18,25 +18,21 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
       : { email, password };
 
     try {
-      const res = await apiFetch(`${API_BASE_URL}${endpoint}`, {
+      // apiFetch automatically handles the base URL, parses JSON, and throws on error
+      const data = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
 
-      if (res.ok) {
-        // Save the JWT token to localStorage so authorized routes (like AdminDashboard) can use it
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-        }
-        onLoginSuccess(data.user);
-      } else {
-        alert(data.error || 'Authentication failed');
+      // Save the JWT token to localStorage so authorized routes (like AdminDashboard) can use it
+      if (data.token) {
+        localStorage.setItem('token', data.token);
       }
+      onLoginSuccess(data.user);
     } catch (err) {
       console.error(err);
-      alert('Server connection error');
+      alert(err.message || 'Server connection error');
     }
   };
 
