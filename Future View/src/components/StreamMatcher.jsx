@@ -50,8 +50,9 @@ export default function StreamMatcher() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      apiFetch(`${API_BASE}/api/courses`).then((r) => r.json()),
-      apiFetch(`${API_BASE}/api/exams`).then((r) => r.json())
+  apiFetch(`${API_BASE}/api/courses`).then((r) => r.json()),
+  apiFetch(`${API_BASE}/api/exams`).then((r) => r.json())
+
     ])
       .then(([coursesData, examsData]) => {
         setAllCourses(Array.isArray(coursesData) ? coursesData : []);
