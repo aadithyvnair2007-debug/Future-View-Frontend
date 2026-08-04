@@ -65,7 +65,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
 
   // Fetch Welcome Info
   useEffect(() => {
-    apiFetch(`${API_BASE_URL}/api/welcome`)
+   apiFetch(`${API_BASE_URL}/api/welcome`)
       .then(res => res.json())
       .then(data => setWelcomeInfo(data))
       .catch(err => console.error("Error fetching welcome info:", err));
