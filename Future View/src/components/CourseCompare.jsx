@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../utils/api';
 
 const API_BASE = 'https://future-view.onrender.com';
 
@@ -11,7 +12,7 @@ export default function CourseCompare() {
   const [comparedCourses, setComparedCourses] = useState([null, null, null]);
 
   useEffect(() => {
-    apiFetch(`${API_BASE}/api/courses`)
+    fetch(`${API_BASE}/api/courses`)
       .then((res) => res.json())
       .then((data) => {
         const courseList = Array.isArray(data) ? data : [];

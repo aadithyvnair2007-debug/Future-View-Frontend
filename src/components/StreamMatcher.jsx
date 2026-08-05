@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = 'https://future-view.onrender.com';
+
 export default function StreamMatcher() {
   const [selectedStream, setSelectedCategory] = useState('PCM');
   const [allCourses, setAllCourses] = useState([]);
@@ -48,9 +50,9 @@ export default function StreamMatcher() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      apiapiFetch(/api/courses').then((r) => r.json()),
-      apiapiFetch(/api/exams').then((r) => r.json())
-    ])
+      fetch(`${API_BASE}/api/courses`).then((r) => r.json()),
+      fetch(`${API_BASE}/api/exams`).then((r) => r.json())
+    ])  
       .then(([coursesData, examsData]) => {
         setAllCourses(Array.isArray(coursesData) ? coursesData : []);
         setAllExams(Array.isArray(examsData) ? examsData : []);

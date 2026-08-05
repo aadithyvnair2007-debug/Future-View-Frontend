@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = 'https://future-view.onrender.com';
+
 export default function SavedPathways({ currentUser, onOpenAuth }) {
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +14,7 @@ export default function SavedPathways({ currentUser, onOpenAuth }) {
       return;
     }
 
-    apiFetch(`/api/users/${userId}/bookmarks`)
+    fetch(`${API_BASE}/api/users/${userId}/bookmarks`)
       .then((res) => res.json())
       .then((data) => {
         setBookmarks(Array.isArray(data) ? data : []);
@@ -25,7 +27,7 @@ export default function SavedPathways({ currentUser, onOpenAuth }) {
   }, [userId]);
 
   const handleRemoveBookmark = (itemId) => {
-    apiFetch(`/api/users/${userId}/bookmarks`, {
+    fetch(`${API_BASE}/api/users/${userId}/bookmarks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ itemId }),
@@ -45,7 +47,7 @@ export default function SavedPathways({ currentUser, onOpenAuth }) {
           <p style={{ color: '#64748b', marginBottom: '20px' }}>
             Please log in or register to view and save your favorite degree pathways and entrance exams.
           </p>
-          <button style={primaryBtnStyle} onClick={onOpenAuth}>
+          <button type="button" style={primaryBtnStyle} onClick={onOpenAuth}>
             Login / Register
           </button>
         </div>
@@ -72,7 +74,7 @@ export default function SavedPathways({ currentUser, onOpenAuth }) {
             <div key={item.itemId} style={cardStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <span style={typeBadgeStyle}>{item.type || 'Course'}</span>
-                <button style={removeBtnStyle} onClick={() => handleRemoveBookmark(item.itemId)}>
+                <button type="button" style={removeBtnStyle} onClick={() => handleRemoveBookmark(item.itemId)}>
                   ✕ Remove
                 </button>
               </div>

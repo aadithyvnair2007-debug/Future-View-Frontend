@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = 'https://future-view.onrender.com';
+
 export default function CourseCompare() {
   const [allCourses, setAllCourses] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -8,24 +10,39 @@ export default function CourseCompare() {
   const [selectedIds, setSelectedIds] = useState(['', '', '']);
   const [comparedCourses, setComparedCourses] = useState([null, null, null]);
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    apiapiFetch(/api/courses')
-      .then((res) => res.json())
+    setLoading(true);
+    setError('');
+    fetch(`${API_BASE}/api/courses`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch courses');
+        return res.json();
+      })
       .then((data) => {
         const courseList = Array.isArray(data) ? data : [];
         setAllCourses(courseList);
 
-        // Extract unique categories dynamically from database
+        // Normalize and extract unique categories dynamically
         const uniqueCategories = Array.from(
           new Set(
             courseList
               .map((c) => c.category || c.courseCategory || c.stream || c.type)
               .filter(Boolean)
+              .map((cat) => cat.trim())
           )
         );
         setCategories(uniqueCategories);
       })
-      .catch((err) => console.error('Error fetching courses for comparison:', err));
+      .catch((err) => {
+        console.error('Error fetching courses for comparison:', err);
+        setError('Could not load courses. Please try again later.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   // Filter courses based on selected category
@@ -33,7 +50,7 @@ export default function CourseCompare() {
     ? allCourses
     : allCourses.filter((c) => {
         const cat = c.category || c.courseCategory || c.stream || c.type;
-        return cat?.toLowerCase() === selectedCategory.toLowerCase();
+        return cat?.trim().toLowerCase() === selectedCategory.toLowerCase();
       });
 
   // Reset selections if user changes category
@@ -74,6 +91,8 @@ export default function CourseCompare() {
         </p>
       </div>
 
+      {error && <div style={errorBannerStyle}>{error}</div>}
+
       {/* CATEGORY FILTER BAR */}
       <div style={categoryFilterContainerStyle}>
         <label style={categoryLabelStyle}>🏷️ Filter Courses by Category:</label>
@@ -81,108 +100,113 @@ export default function CourseCompare() {
           style={categorySelectStyle}
           value={selectedCategory}
           onChange={handleCategoryChange}
+          disabled={loading}
         >
           <option value="ALL">All Categories ({allCourses.length} Courses)</option>
-          {categories.map((cat, idx) => (
-            <option key={idx} value={cat}>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
               {cat}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Comparison Grid Table */}
-      <div style={gridStyle}>
-        {[0, 1, 2].map((slotIndex) => {
-          const course = comparedCourses[slotIndex];
+      {loading ? (
+        <div style={loadingStyle}>Loading courses for comparison...</div>
+      ) : (
+        /* Comparison Grid Table */
+        <div style={gridStyle}>
+          {[0, 1, 2].map((slotIndex) => {
+            const course = comparedCourses[slotIndex];
 
-          return (
-            <div key={slotIndex} style={columnCardStyle}>
-              {/* Header Dropdown */}
-              <div style={selectHeaderStyle}>
-                <label style={labelStyle}>Option {slotIndex + 1}</label>
-                <select
-                  style={selectStyle}
-                  value={selectedIds[slotIndex]}
-                  onChange={(e) => handleSelectChange(slotIndex, e.target.value)}
-                >
-                  <option value="">-- Select Course --</option>
-                  {filteredCourses.map((c) => {
-                    const id = c._id || c.id;
-                    const isSelectedElsewhere = selectedIds.includes(id) && selectedIds[slotIndex] !== id;
-                    return (
-                      <option key={id} value={id} disabled={isSelectedElsewhere}>
-                        {c.title || c.courseName || c.name}
-                      </option>
-                    );
-                  })}
-                </select>
-                {selectedIds[slotIndex] && (
-                  <button style={clearBtnStyle} onClick={() => handleClear(slotIndex)}>
-                    Remove
-                  </button>
+            return (
+              <div key={slotIndex} style={columnCardStyle}>
+                {/* Header Dropdown */}
+                <div style={selectHeaderStyle}>
+                  <label style={labelStyle}>Option {slotIndex + 1}</label>
+                  <select
+                    style={selectStyle}
+                    value={selectedIds[slotIndex]}
+                    onChange={(e) => handleSelectChange(slotIndex, e.target.value)}
+                  >
+                    <option value="">-- Select Course --</option>
+                    {filteredCourses.map((c) => {
+                      const id = c._id || c.id;
+                      const isSelectedElsewhere = selectedIds.includes(id) && selectedIds[slotIndex] !== id;
+                      return (
+                        <option key={id} value={id} disabled={isSelectedElsewhere}>
+                          {c.title || c.courseName || c.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {selectedIds[slotIndex] && (
+                    <button style={clearBtnStyle} onClick={() => handleClear(slotIndex)}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {/* Course Detail Slot */}
+                {course ? (
+                  <div style={detailsContainerStyle}>
+                    <div style={detailBoxStyle}>
+                      <span style={detailTitleStyle}>Course Title</span>
+                      <h3 style={{ margin: '4px 0 0 0', color: '#4f46e5', fontSize: '18px' }}>
+                        {course.title || course.courseName || course.name}
+                      </h3>
+                    </div>
+
+                    <div style={detailBoxStyle}>
+                      <span style={detailTitleStyle}>Category / Domain</span>
+                      <p style={detailTextStyle}>
+                        <span style={badgeStyle}>
+                          {course.category || course.courseCategory || course.stream || course.type || 'General'}
+                        </span>
+                      </p>
+                    </div>
+
+                    <div style={detailBoxStyle}>
+                      <span style={detailTitleStyle}>Duration</span>
+                      <p style={detailTextStyle}>⏱️ {course.duration || 'N/A'}</p>
+                    </div>
+
+                    <div style={detailBoxStyle}>
+                      <span style={detailTitleStyle}>Applicable Exams</span>
+                      <p style={detailTextStyle}>
+                        📝 {Array.isArray(course.exams) ? course.exams.join(', ') : course.exams || 'N/A'}
+                      </p>
+                    </div>
+
+                    <div style={detailBoxStyle}>
+                      <span style={detailTitleStyle}>Career & Potential Profiles</span>
+                      <p style={detailTextStyle}>
+                        💼{' '}
+                        {Array.isArray(course.jobRoles)
+                          ? course.jobRoles.join(', ')
+                          : Array.isArray(course.potentialProfiles)
+                          ? course.potentialProfiles.join(', ')
+                          : course.potentialProfiles || 'N/A'}
+                      </p>
+                    </div>
+
+                    <div style={detailBoxStyle}>
+                      <span style={detailTitleStyle}>Description</span>
+                      <p style={{ ...detailTextStyle, fontSize: '13px', lineHeight: '1.5', color: '#475569' }}>
+                        {course.description || 'No description available.'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={placeholderStyle}>
+                    <p style={{ color: '#94a3b8', fontWeight: '500' }}>Select a course to compare</p>
+                  </div>
                 )}
               </div>
-
-              {/* Course Detail Slot */}
-              {course ? (
-                <div style={detailsContainerStyle}>
-                  <div style={detailBoxStyle}>
-                    <span style={detailTitleStyle}>Course Title</span>
-                    <h3 style={{ margin: '4px 0 0 0', color: '#4f46e5', fontSize: '18px' }}>
-                      {course.title || course.courseName || course.name}
-                    </h3>
-                  </div>
-
-                  <div style={detailBoxStyle}>
-                    <span style={detailTitleStyle}>Category / Domain</span>
-                    <p style={detailTextStyle}>
-                      <span style={badgeStyle}>
-                        {course.category || course.courseCategory || course.stream || course.type || 'General'}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div style={detailBoxStyle}>
-                    <span style={detailTitleStyle}>Duration</span>
-                    <p style={detailTextStyle}>⏱️ {course.duration || 'N/A'}</p>
-                  </div>
-
-                  <div style={detailBoxStyle}>
-                    <span style={detailTitleStyle}>Applicable Exams</span>
-                    <p style={detailTextStyle}>
-                      📝 {Array.isArray(course.exams) ? course.exams.join(', ') : course.exams || 'N/A'}
-                    </p>
-                  </div>
-
-                  <div style={detailBoxStyle}>
-                    <span style={detailTitleStyle}>Career & Potential Profiles</span>
-                    <p style={detailTextStyle}>
-                      💼{' '}
-                      {Array.isArray(course.jobRoles)
-                        ? course.jobRoles.join(', ')
-                        : Array.isArray(course.potentialProfiles)
-                        ? course.potentialProfiles.join(', ')
-                        : course.potentialProfiles || 'N/A'}
-                    </p>
-                  </div>
-
-                  <div style={detailBoxStyle}>
-                    <span style={detailTitleStyle}>Description</span>
-                    <p style={{ ...detailTextStyle, fontSize: '13px', lineHeight: '1.5', color: '#475569' }}>
-                      {course.description || 'No description available.'}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div style={placeholderStyle}>
-                  <p style={{ color: '#94a3b8', fontWeight: '500' }}>Select a course to compare</p>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -204,3 +228,5 @@ const detailTitleStyle = { fontSize: '11px', fontWeight: '700', color: '#94a3b8'
 const detailTextStyle = { margin: '4px 0 0 0', fontSize: '14px', fontWeight: '600', color: '#1e293b' };
 const badgeStyle = { backgroundColor: '#e0e7ff', color: '#4338ca', padding: '3px 8px', borderRadius: '4px', fontSize: '12px' };
 const placeholderStyle = { flex: 1, minHeight: '250px', border: '2px dashed #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center' };
+const loadingStyle = { textAlign: 'center', padding: '50px', color: '#64748b', fontSize: '16px', fontWeight: '600' };
+const errorBannerStyle = { backgroundColor: '#451a1a', border: '1px solid #7f1d1d', color: '#fca5a5', padding: '12px', borderRadius: '8px', fontSize: '14px', marginBottom: '20px', textAlign: 'center' };

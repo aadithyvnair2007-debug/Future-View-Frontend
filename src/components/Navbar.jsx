@@ -1,13 +1,12 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logo from 'C:/Users/lenovo/Desktop/ICT/project/Frontend/src/Future-View.png'; // Import your logo image
+import logo from 'C:/Users/lenovo/Desktop/ICT/project/Frontend/src/Future-View.png'; // Fixed: Use standard relative pathing
 
 export default function Navbar({ currentUser, onOpenAuth, onLogout, step, setStep }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
-  
 
   // Flexible check for admin user (handles 'admin', 'System Admin', 'superadmin', etc.)
   const isAdmin = Boolean(
@@ -36,16 +35,16 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout, step, setSte
       <div style={navInnerStyle}>
         
         {/* ================= FAR LEFT: LOGO ================= */}
-       <div style={brandStyle} onClick={handleHomeClick}>
-  <img
-    src={logo}
-    alt="Future View"
-    style={{ height: '42px', width: 'auto', objectFit: 'contain' }}
-  />
-  <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '1.125rem', marginLeft: '10px', letterSpacing: '0.05em' }}>
-    FUTURE VIEW
-  </span>
-</div>
+        <div style={brandStyle} onClick={handleHomeClick}>
+          <img
+            src={logo}
+            alt="Future View"
+            style={{ height: '42px', width: 'auto', objectFit: 'contain' }}
+          />
+          <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '1.125rem', marginLeft: '10px', letterSpacing: '0.05em' }}>
+            FUTURE VIEW
+          </span>
+        </div>
 
         {/* ================= FAR RIGHT: LINKS & ACTIONS ================= */}
         <div style={rightGroupStyle}>

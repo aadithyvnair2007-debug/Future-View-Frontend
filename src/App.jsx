@@ -35,8 +35,9 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('token'); // Clear backend auth token to prevent lingering session state
     setStep('intro');
-    navigate('/'); // Smooth client-side navigation instead of hard reload
+    navigate('/'); // Redirects to the root route where View renders the intro step
   };
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin === true;
@@ -49,7 +50,10 @@ export default function App() {
         onOpenAuth={() => setShowAuthModal(true)} 
         onLogout={handleLogout} 
         step={step}
-        setStep={setStep}
+        setStep={(newStep) => {
+          setStep(newStep);
+          navigate('/'); // Ensure clicking home/nav items on Navbar brings you back to the main View route if needed
+        }}
       />
 
       <Routes>
@@ -89,24 +93,26 @@ export default function App() {
             )
           } 
         />
+        
         <Route 
            path="/saved" 
            element={
           <SavedPathways 
           currentUser={currentUser} 
-               onOpenAuth={() => setShowAuthModal(true)} 
+              onOpenAuth={() => setShowAuthModal(true)} 
           />
            } 
         />
+        
         <Route 
           path="/profile" 
           element={
-       <ProfilePage 
-          currentUser={currentUser} 
-          onUpdateUser={(updated) => setCurrentUser(updated)} 
-       />
-       } 
-      />
+            <ProfilePage 
+              currentUser={currentUser} 
+              onUpdateUser={(updated) => setCurrentUser(updated)} 
+            />
+          } 
+        />
       </Routes>
 
       {/* AUTH MODAL */}

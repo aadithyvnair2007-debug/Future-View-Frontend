@@ -98,7 +98,7 @@ export default function ProfilePage({ currentUser, onUpdateUser }) {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await apiFetch(`${API_BASE}/api/users/profile`, {
+      const response = await fetch(`${API_BASE}/api/users/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

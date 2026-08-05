@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import futureViewLogo from 'C:/Users/lenovo/Desktop/ICT/project/Frontend/src/Future-View.png';
+import futureViewLogo from '../Future-View.png';
+
+const API_BASE = 'https://future-view.onrender.com';
 
 export default function View({ currentUser, onOpenAuth, step = 'intro', setStep }) {
+  // Initialize local step state safely
+  const [currentStep, setCurrentStep] = useState(step || 'intro');
   const [pendingExplore, setPendingExplore] = useState(false);
   const [welcomeInfo, setWelcomeInfo] = useState(null);
   const [exams, setExams] = useState([]);
@@ -19,6 +23,20 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const isAdmin = currentUser?.role === 'admin';
+
+  // Fixed: Allow step synchronization for all steps including 'intro'
+  useEffect(() => {
+    if (step && step !== currentStep) {
+      setCurrentStep(step);
+    }
+  }, [step]);
+
+  const handleStepChange = (newStep) => {
+    setCurrentStep(newStep);
+    if (typeof setStep === 'function') {
+      setStep(newStep);
+    }
+  };
 
   // Theme Palette Definitions
   const theme = {
@@ -58,13 +76,13 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
   useEffect(() => {
     if (currentUser && pendingExplore) {
       setPendingExplore(false);
-      setStep('select-exam');
+      handleStepChange('select-exam');
     }
-  }, [currentUser, pendingExplore, setStep]);
+  }, [currentUser, pendingExplore]);
 
   // Fetch Welcome Info
   useEffect(() => {
-    apiapiFetch(/api/welcome')
+    fetch(`${API_BASE}/api/welcome`)
       .then(res => res.json())
       .then(data => setWelcomeInfo(data))
       .catch(err => console.error("Error fetching welcome info:", err));
@@ -72,7 +90,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
 
   // Fetch Exams List
   useEffect(() => {
-    apiapiFetch(/api/exams')
+    fetch(`${API_BASE}/api/exams`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
@@ -95,7 +113,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
   useEffect(() => {
     const userId = currentUser?._id || currentUser?.id;
     if (userId && !isAdmin) {
-      apiFetch(`/api/users/${userId}/bookmarks`)
+      fetch(`${API_BASE}/api/users/${userId}/bookmarks`)
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data)) setUserBookmarks(data);
@@ -119,14 +137,9 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
     const itemId = String(item._id || item.id || item.name || item.title);
     const title = item.name || item.examName || item.title || item.courseName;
 
-    const payload = {
-      itemId,
-      title,
-      type,
-      category: item.category || 'General'
-    };
+    const payload = { itemId, title, type, category: item.category || 'General' };
 
-    apiFetch(`/api/users/${userId}/bookmarks`, {
+    fetch(`${API_BASE}/api/users/${userId}/bookmarks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -138,7 +151,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       .catch((err) => console.error('Error toggling bookmark:', err));
   };
 
-  // FAILSAFE EXPLORE HANDLER
+  // EXPLORE HANDLER
   const handleExploreClick = (e) => {
     if (e) e.preventDefault();
     
@@ -146,20 +159,20 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       setPendingExplore(true);
       onOpenAuth();
     } else {
-      setStep('select-exam');
+      handleStepChange('select-exam');
     }
   };
 
-  // FAILSAFE EXAM CLICK HANDLER
+  // EXAM CLICK HANDLER
   const handleExamClick = (examName) => {
     setSelectedExam(examName);
     setLoading(true);
-    setStep('courses');
+    handleStepChange('courses');
     setCourseSearch('');
     setSelectedCategory('All');
     setSortBy('az');
 
-    apiFetch(`/api/pathway/${examName.toLowerCase()}`)
+    fetch(`${API_BASE}/api/pathway/${examName.toLowerCase()}`)
       .then(res => res.json())
       .then(data => {
         setCourses(data.courses || []);
@@ -172,12 +185,10 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       });
   };
 
-  // EXPORT PATHWAY AS PDF (Print trigger)
   const handleExportPDF = () => {
     window.print();
   };
 
-  // Filtered list of exams based on search query (Optimized with useMemo)
   const filteredExams = useMemo(() => {
     return exams.filter(exam => 
       exam.name.toLowerCase().includes(examSearch.toLowerCase()) ||
@@ -185,12 +196,10 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
     );
   }, [exams, examSearch]);
 
-  // Extract unique categories for the course filter dropdown
   const courseCategories = useMemo(() => {
     return ['All', ...new Set(courses.map(c => c.category || c.courseCategory || c.stream || c.type || 'General'))];
   }, [courses]);
 
-  // Sorted and filtered list of courses (Optimized with useMemo)
   const sortedAndFilteredCourses = useMemo(() => {
     const filtered = courses.filter(course => {
       const title = course.title || course.courseName || course.name || '';
@@ -222,113 +231,24 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
   return (
     <div style={{ ...containerStyle, backgroundColor: theme.bg }}>
 
-      {/* DEDICATED PRINT STYLES ENFORCING STRICT LIGHT MODE AND MULTI-PAGE FLOW */}
+      {/* PRINT STYLES */}
       <style dangerouslySetInnerHTML={{ __html: `
-        @page {
-          margin: 15mm;
-        }
+        @page { margin: 15mm; }
         @media print {
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          button, input, select, 
-          header, nav, .navbar,
-          div[style*="justify-content: flex-end"],
-          div[style*="display: flex"][style*="gap: 15px"],
-          .no-print {
-            display: none !important;
-          }
-
-          html, body {
-            height: auto !important;
-            overflow: visible !important;
-            background-color: #ffffff !important;
-          }
-
-          div[style*="containerStyle"] {
-            display: block !important;
-            position: static !important;
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-            min-height: auto !important;
-            height: auto !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            overflow: visible !important;
-          }
-
-          div[style*="max-width: 1000px"] {
-            max-width: 100% !important;
-            width: 100% !important;
-            display: block !important;
-            position: static !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            background-color: #ffffff !important;
-            overflow: visible !important;
-          }
-
-          .print-header {
-            display: flex !important;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 2px solid #0f172a !important;
-            padding-bottom: 12px !important;
-            margin-bottom: 25px !important;
-            background-color: #ffffff !important;
-          }
-
-          div[style*="gridTemplateColumns"] {
-            display: block !important;
-            height: auto !important;
-          }
-
-          .course-card-print {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-            background: #ffffff !important;
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-            border: 1px solid #cbd5e1 !important;
-            box-shadow: none !important;
-            padding: 20px !important;
-            margin-bottom: 20px !important;
-            display: block !important;
-            position: relative !important;
-          }
-
-          .course-card-print h3 {
-            color: #0f172a !important;
-          }
-
-          .course-card-print p {
-            color: #475569 !important;
-          }
-
-          .course-card-print span {
-            background-color: #f1f5f9 !important;
-            color: #1e293b !important;
-            border: 1px solid #cbd5e1 !important;
-          }
-
-          .course-card-print div {
-            color: #0f172a !important;
-          }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          button, input, select, header, nav, .navbar, .no-print { display: none !important; }
+          html, body { height: auto !important; overflow: visible !important; background-color: #ffffff !important; }
+          div[style*="containerStyle"] { display: block !important; position: static !important; background-color: #ffffff !important; color: #0f172a !important; min-height: auto !important; height: auto !important; padding: 0 !important; margin: 0 !important; }
+          .print-header { display: flex !important; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a !important; padding-bottom: 12px !important; margin-bottom: 25px !important; background-color: #ffffff !important; }
+          .course-card-print { break-inside: avoid !important; page-break-inside: avoid !important; background: #ffffff !important; border: 1px solid #cbd5e1 !important; padding: 20px !important; margin-bottom: 20px !important; display: block !important; }
         }
       `}} />
 
-      {/* GLOBAL UTILITY BAR (Dark Mode Toggle) */}
+      {/* GLOBAL UTILITY BAR */}
       <div style={globalUtilityBarStyle}>
         <button
           type="button"
-          style={{
-            ...themeToggleBtnStyle,
-            backgroundColor: theme.cardBg,
-            color: theme.textMain,
-            borderColor: theme.border
-          }}
+          style={{ ...themeToggleBtnStyle, backgroundColor: theme.cardBg, color: theme.textMain, borderColor: theme.border }}
           onClick={() => setIsDarkMode(!isDarkMode)}
           title="Toggle Dark/Light Mode"
         >
@@ -337,7 +257,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       </div>
 
       {/* ================= SCREEN 1: INTRO ================= */}
-      {step === 'intro' && (
+      {currentStep === 'intro' && (
         <div style={{ ...cardStyle, backgroundColor: theme.cardBg, border: `1px solid ${theme.border}` }}>
           <h1 style={{ ...mainTitleStyle, color: isDarkMode ? '#a5b4fc' : '#2e1065' }}>
             {welcomeInfo?.title || "Discover Your Future After +2"}
@@ -377,13 +297,13 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       )}
 
       {/* ================= SCREEN 2: SELECT EXAM ================= */}
-      {step === 'select-exam' && (
+      {currentStep === 'select-exam' && (
         <div style={{ width: '100%', maxWidth: '1000px' }}>
           <div style={topNavRowStyle}>
             <button 
               type="button" 
               style={backLinkStyle} 
-              onClick={() => setStep('intro')}
+              onClick={() => handleStepChange('intro')}
             >
               ← Back to Intro
             </button>
@@ -398,7 +318,6 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
             </p>
           </div>
 
-          {/* Exam Search Bar */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
             <input 
               type="text"
@@ -446,12 +365,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
           ) : (
             <div style={{ textAlign: 'center', padding: '60px', backgroundColor: theme.cardBg, borderRadius: '12px', border: `1px solid ${theme.border}` }}>
               <h3 style={{ color: theme.textMain, marginBottom: '8px' }}>No entrance exams found matching "{examSearch}"</h3>
-              <p style={{ color: theme.textMuted, marginBottom: '20px' }}>Try checking your spelling or search term.</p>
-              <button 
-                type="button" 
-                style={secondaryActionBtnStyle} 
-                onClick={() => setExamSearch('')}
-              >
+              <button type="button" style={secondaryActionBtnStyle} onClick={() => setExamSearch('')}>
                 Clear Search
               </button>
             </div>
@@ -460,28 +374,15 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
       )}
 
       {/* ================= SCREEN 3: COURSES ================= */}
-      {step === 'courses' && (
+      {currentStep === 'courses' && (
         <div style={{ width: '100%', maxWidth: '1000px' }}>
-          {/* DEDICATED PRINT HEADER */}
           <div className="print-header" style={{ display: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <img 
-                src={futureViewLogo} 
-                alt="Future View Logo"
-                style={{ 
-                  width: '42px', 
-                  height: '42px', 
-                  objectFit: 'contain', 
-                  borderRadius: '8px' 
-                }} 
-              />
+              <img src={futureViewLogo} alt="Logo" style={{ width: '42px', height: '42px', objectFit: 'contain', borderRadius: '8px' }} />
               <div>
-                <div style={{ fontSize: '16px', fontWeight: '900', letterSpacing: '1px', fontFamily: 'serif', color: '#0f172a' }}>FUTURE VIEW</div>
-                <div style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '1.5px', color: '#475569', textTransform: 'uppercase' }}>Discovery For Your Future</div>
+                <div style={{ fontSize: '16px', fontWeight: '900', fontFamily: 'serif', color: '#0f172a' }}>FUTURE VIEW</div>
+                <div style={{ fontSize: '9px', fontWeight: '700', color: '#475569' }}>DISCOVERY FOR YOUR FUTURE</div>
               </div>
-            </div>
-            <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a', background: '#f1f5f9', padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-              PATHWAY REPORT: {selectedExam}
             </div>
           </div>
 
@@ -489,18 +390,13 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
             <button 
               type="button" 
               style={backLinkStyle} 
-              onClick={() => setStep('select-exam')}
+              onClick={() => handleStepChange('select-exam')}
             >
               ← Choose a Different Exam
             </button>
 
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button
-                type="button"
-                style={exportBtnStyle}
-                onClick={handleExportPDF}
-                title="Download or Print Pathway PDF"
-              >
+              <button type="button" style={exportBtnStyle} onClick={handleExportPDF}>
                 📥 Export Pathway PDF
               </button>
               <div style={pathwayBadgeStyle}>
@@ -509,11 +405,10 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
             </div>
           </div>
 
-          {/* Course Search, Category Filter & Sort Bar */}
           <div style={filterBarContainerStyle}>
             <input 
               type="text"
-              placeholder="Search courses by title or description..."
+              placeholder="Search courses..."
               value={courseSearch}
               onChange={(e) => setCourseSearch(e.target.value)}
               style={{ ...searchInputStyle, backgroundColor: theme.inputBg, color: theme.textMain, borderColor: theme.inputBorder, maxWidth: '350px', flex: 1 }}
@@ -524,9 +419,7 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
               style={{ ...selectDropdownStyle, backgroundColor: theme.inputBg, color: theme.textMain, borderColor: theme.inputBorder }}
             >
               {courseCategories.map((cat, idx) => (
-                <option key={idx} value={cat}>
-                  Category: {cat}
-                </option>
+                <option key={idx} value={cat}>Category: {cat}</option>
               ))}
             </select>
             <select
@@ -553,8 +446,6 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
                   ? course.jobRoles 
                   : Array.isArray(course.potentialProfiles) && course.potentialProfiles.length > 0 
                   ? course.potentialProfiles 
-                  : typeof course.potentialProfiles === 'string' 
-                  ? course.potentialProfiles.split(',').map(s => s.trim())
                   : [];
 
                 return (
@@ -573,7 +464,6 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
                           backgroundColor: isBookmarked ? (isDarkMode ? '#451a03' : '#fffbeb') : theme.cardBg
                         }}
                         onClick={(e) => handleToggleBookmark(e, course, 'Course')}
-                        title={isBookmarked ? "Remove Bookmark" : "Save Course"}
                       >
                         {isBookmarked ? '⭐' : '☆'}
                       </button>
@@ -612,13 +502,8 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '60px', backgroundColor: theme.cardBg, borderRadius: '12px', border: `1px solid ${theme.border}` }}>
-              <h3 style={{ color: theme.textMain, marginBottom: '8px' }}>No courses found matching your search or filter</h3>
-              <p style={{ color: theme.textMuted, marginBottom: '20px' }}>Try clearing your search filters or check back later.</p>
-              <button 
-                type="button" 
-                style={secondaryActionBtnStyle} 
-                onClick={() => { setCourseSearch(''); setSelectedCategory('All'); }}
-              >
+              <h3 style={{ color: theme.textMain, marginBottom: '8px' }}>No courses found</h3>
+              <button type="button" style={secondaryActionBtnStyle} onClick={() => { setCourseSearch(''); setSelectedCategory('All'); }}>
                 Reset Filters
               </button>
             </div>
@@ -626,17 +511,11 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
         </div>
       )}
 
-      {/* ================= DETAILED COURSE MODAL ================= */}
+      {/* MODAL */}
       {selectedCourseModal && (
         <div style={modalOverlayStyle} onClick={() => setSelectedCourseModal(null)}>
           <div style={{ ...modalContentStyle, backgroundColor: theme.cardBg }} onClick={(e) => e.stopPropagation()}>
-            <button 
-              type="button" 
-              style={{ ...modalCloseBtnStyle, color: theme.textMuted }} 
-              onClick={() => setSelectedCourseModal(null)}
-            >
-              ×
-            </button>
+            <button type="button" style={{ ...modalCloseBtnStyle, color: theme.textMuted }} onClick={() => setSelectedCourseModal(null)}>×</button>
 
             <h2 style={{ fontSize: '22px', fontWeight: '800', color: theme.textMain, marginBottom: '12px', paddingRight: '30px' }}>
               {selectedCourseModal.title || selectedCourseModal.courseName || selectedCourseModal.name}
@@ -651,35 +530,9 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
               </span>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: '700', color: theme.textMuted, textTransform: 'uppercase', marginBottom: '6px' }}>Course Description</h4>
-              <p style={{ fontSize: '14px', color: theme.textMain, lineHeight: '1.6', margin: 0 }}>
-                {selectedCourseModal.description || 'No detailed description available.'}
-              </p>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: '700', color: theme.textMuted, textTransform: 'uppercase', marginBottom: '6px' }}>Eligibility Criteria</h4>
-              <p style={{ fontSize: '14px', color: theme.textMain, lineHeight: '1.6', margin: 0 }}>
-                {selectedCourseModal.eligibility || selectedCourseModal.eligibilityCriteria || 'Pass in +2 or equivalent examination with required subjects.'}
-              </p>
-            </div>
-
-            <div>
-              <h4 style={{ fontSize: '13px', fontWeight: '700', color: theme.textMuted, textTransform: 'uppercase', marginBottom: '8px' }}>Potential Career Profiles</h4>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {((Array.isArray(selectedCourseModal.jobRoles) && selectedCourseModal.jobRoles.length > 0)
-                  ? selectedCourseModal.jobRoles
-                  : Array.isArray(selectedCourseModal.potentialProfiles) && selectedCourseModal.potentialProfiles.length > 0
-                  ? selectedCourseModal.potentialProfiles
-                  : typeof selectedCourseModal.potentialProfiles === 'string'
-                  ? selectedCourseModal.potentialProfiles.split(',').map(s => s.trim())
-                  : ['General Specialist']
-                ).map((role, i) => (
-                  <span key={i} style={{ ...profileBadgeStyle, backgroundColor: theme.inputBg, color: theme.textMuted, borderColor: theme.border }}>{role}</span>
-                ))}
-              </div>
-            </div>
+            <p style={{ fontSize: '14px', color: theme.textMain, lineHeight: '1.6' }}>
+              {selectedCourseModal.description || 'No detailed description available.'}
+            </p>
           </div>
         </div>
       )}
@@ -688,48 +541,42 @@ export default function View({ currentUser, onOpenAuth, step = 'intro', setStep 
   );
 }
 
-// ================= STYLES =================
-const containerStyle = { minHeight: 'calc(100vh - 70px)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', fontFamily: 'Inter, system-ui, -apple-system, sans-serif', transition: 'background-color 0.2s ease' };
+// STYLES
+const containerStyle = { minHeight: 'calc(100vh - 70px)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', fontFamily: 'Inter, system-ui, sans-serif' };
 const globalUtilityBarStyle = { width: '100%', maxWidth: '1000px', display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' };
-const themeToggleBtnStyle = { padding: '8px 16px', borderRadius: '20px', border: '1px solid', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' };
-
+const themeToggleBtnStyle = { padding: '8px 16px', borderRadius: '20px', border: '1px solid', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' };
 const cardStyle = { borderRadius: '16px', padding: '45px 50px', maxWidth: '650px', width: '100%', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)', margin: 'auto' };
 const mainTitleStyle = { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '25px' };
 const quoteBoxStyle = { borderLeft: '4px solid #6366f1', paddingLeft: '16px', marginBottom: '25px' };
 const quoteTextStyle = { fontSize: '15px', fontStyle: 'italic', lineHeight: '1.6', margin: 0 };
 const whyBoxStyle = { borderRadius: '12px', padding: '20px 25px' };
-const whyTitleStyle = { fontSize: '13px', fontWeight: '700', letterSpacing: '0.5px', margin: '0 0 12px 0' };
+const whyTitleStyle = { fontSize: '13px', fontWeight: '700', margin: '0 0 12px 0' };
 const listStyle = { listStyle: 'none', padding: 0, margin: 0 };
 const listItemStyle = { fontSize: '14px', marginBottom: '8px', lineHeight: '1.5' };
 const purpleBtnStyle = { backgroundColor: '#4f46e5', color: '#ffffff', border: 'none', padding: '14px 32px', borderRadius: '25px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' };
 const secondaryActionBtnStyle = { backgroundColor: '#6366f1', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' };
-
 const topNavRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '24px', minHeight: '36px', flexWrap: 'wrap', gap: '12px' };
 const backLinkStyle = { background: 'none', border: 'none', color: '#6366f1', fontWeight: '600', fontSize: '14px', cursor: 'pointer', padding: '4px 0' };
-
-const searchInputStyle = { padding: '12px 18px', borderRadius: '10px', border: '1px solid', fontSize: '14px', outline: 'none', width: '100%', maxWidth: '400px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' };
+const searchInputStyle = { padding: '12px 18px', borderRadius: '10px', border: '1px solid', fontSize: '14px', outline: 'none', width: '100%', maxWidth: '400px' };
 const examGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', width: '100%' };
-const examCardStyle = { borderRadius: '16px', padding: '28px', cursor: 'pointer', transition: 'transform 0.2s ease, box-shadow 0.2s ease', display: 'flex', flexDirection: 'column' };
+const examCardStyle = { borderRadius: '16px', padding: '28px', cursor: 'pointer', display: 'flex', flexDirection: 'column' };
 const starButtonStyle = { position: 'absolute', top: '16px', right: '16px', background: 'none', border: '1px solid', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px' };
 const avatarStyle = { width: '48px', height: '48px', borderRadius: '12px', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '20px', marginBottom: '16px' };
 const examTitleStyle = { fontSize: '18px', fontWeight: '700', marginBottom: '8px' };
 const examDescStyle = { fontSize: '14px', lineHeight: '1.5', margin: 0 };
-
-const exportBtnStyle = { backgroundColor: '#10b981', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' };
-const pathwayBadgeStyle = { backgroundColor: '#e0e7ff', color: '#4f46e5', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' };
-const filterBarContainerStyle = { display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' };
+const exportBtnStyle = { backgroundColor: '#0f172a', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' };
+const pathwayBadgeStyle = { backgroundColor: '#e0e7ff', color: '#3730a3', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800' };
+const filterBarContainerStyle = { display: 'flex', gap: '15px', marginBottom: '25px', flexWrap: 'wrap', alignItems: 'center' };
 const selectDropdownStyle = { padding: '12px 16px', borderRadius: '10px', border: '1px solid', fontSize: '14px', outline: 'none', cursor: 'pointer' };
-
 const courseGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', width: '100%' };
-const courseCardStyle = { borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s ease, box-shadow 0.2s ease' };
-const courseTitleStyle = { fontSize: '18px', fontWeight: '700', marginBottom: '12px' };
-const badgeRowStyle = { display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' };
+const courseCardStyle = { borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column' };
+const courseTitleStyle = { fontSize: '18px', fontWeight: '700', marginBottom: '10px' };
+const badgeRowStyle = { display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' };
 const categoryBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '600' };
 const durationBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '600' };
-const courseDescStyle = { fontSize: '14px', lineHeight: '1.5', margin: '0 0 16px 0' };
-const profileHeaderStyle = { fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', marginBottom: '8px' };
-const profileBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', border: '1px solid' };
-
-const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' };
-const modalContentStyle = { borderRadius: '16px', padding: '30px', maxWidth: '600px', width: '100%', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' };
-const modalCloseBtnStyle = { position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', lineHeight: '1' };
+const courseDescStyle = { fontSize: '14px', lineHeight: '1.5', marginBottom: '15px' };
+const profileHeaderStyle = { fontSize: '11px', fontWeight: '700', marginBottom: '6px' };
+const profileBadgeStyle = { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '500', border: '1px solid' };
+const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' };
+const modalContentStyle = { borderRadius: '16px', padding: '30px', maxWidth: '550px', width: '100%', position: 'relative' };
+const modalCloseBtnStyle = { position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', fontSize: '24px', fontWeight: '700', cursor: 'pointer' };

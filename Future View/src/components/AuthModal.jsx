@@ -18,7 +18,7 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
       : { email, password };
 
     try {
-      const data = await apiFetch(endpoint, {
+      const data = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

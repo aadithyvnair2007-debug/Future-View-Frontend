@@ -67,7 +67,7 @@ export default function AdminDashboard() {
       ...(searchTerm ? { search: searchTerm } : {})
     });
 
-    apiFetch(`${API_BASE}/courses?${params.toString()}`)
+    fetch(`${API_BASE}/courses?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -82,14 +82,14 @@ export default function AdminDashboard() {
   };
 
   const fetchExams = () => {
-    apiFetch(`${API_BASE}/exams`)
+    fetch(`${API_BASE}/exams`)
       .then((res) => res.json())
       .then((data) => setExams(Array.isArray(data) ? data : []))
       .catch((err) => console.error('Error fetching exams:', err));
   };
 
   const fetchUsers = () => {
-    apiFetch(`${API_BASE}/admin/users`, {
+    fetch(`${API_BASE}/admin/users`, {
       headers: getAuthHeaders()
     })
       .then((res) => res.json())
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
   };
 
   const fetchStats = () => {
-    apiFetch(`${API_BASE}/admin/stats`, {
+    fetch(`${API_BASE}/admin/stats`, {
       headers: getAuthHeaders()
     })
       .then((res) => res.json())
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
       ? `${API_BASE}/courses/${editingCourse._id || editingCourse.id}`
       : `${API_BASE}/courses`;
 
-    apiFetch(url, {
+    fetch(url, {
       method: isEdit ? 'PUT' : 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(coursePayload),
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
   // Delete Course
   const handleDeleteCourse = (id) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
-      apiFetch(`${API_BASE}/courses/${id}`, { 
+      fetch(`${API_BASE}/courses/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
   // Add Exam
   const handleExamSubmit = (e) => {
     e.preventDefault();
-    apiFetch(`${API_BASE}/exams`, {
+    fetch(`${API_BASE}/exams`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
   // Delete Exam
   const handleDeleteExam = (id) => {
     if (window.confirm('Are you sure you want to delete this exam?')) {
-      apiFetch(`${API_BASE}/exams/${id}`, { 
+      fetch(`${API_BASE}/exams/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
   // Delete User
   const handleDeleteUser = (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      apiFetch(`${API_BASE}/admin/users/${id}`, { 
+      fetch(`${API_BASE}/admin/users/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })

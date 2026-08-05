@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = 'https://future-view.onrender.com/api';
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('courses');
   const [courses, setCourses] = useState([]);
@@ -12,6 +14,7 @@ export default function AdminDashboard() {
     popularBookmarks: []
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Pagination & Sorting States for Courses
   const [page, setPage] = useState(1);
@@ -28,7 +31,7 @@ export default function AdminDashboard() {
   const [courseDesc, setCourseDesc] = useState('');
   const [courseProfiles, setCourseProfiles] = useState('');
 
-  // Modal State for Editing
+  // Modal State for Editing / Creating
   const [editingCourse, setEditingCourse] = useState(null);
 
   // Exam Form States
@@ -45,18 +48,27 @@ export default function AdminDashboard() {
     };
   };
 
-  // Fetch Data on Mount and when pagination/sorting/search changes
+  // Fetch Initial Global Data
   useEffect(() => {
     fetchExams();
     fetchUsers();
     fetchStats();
   }, []);
 
+  // Fetch Courses when pagination, sorting, or search changes
   useEffect(() => {
     fetchCourses();
   }, [page, sortBy, order, searchTerm]);
 
+  // Sync data when switching tabs
+  useEffect(() => {
+    if (activeTab === 'exams') fetchExams();
+    if (activeTab === 'users') fetchUsers();
+    fetchStats();
+  }, [activeTab]);
+
   const fetchCourses = () => {
+    setLoading(true);
     const params = new URLSearchParams({
       page,
       limit,
@@ -65,10 +77,9 @@ export default function AdminDashboard() {
       ...(searchTerm ? { search: searchTerm } : {})
     });
 
-    apiFetch(`/api/courses?${params.toString()}`)
+    fetch(`${API_BASE}/courses?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
-        // Handles both legacy arrays and structured server-side paginated responses
         if (Array.isArray(data)) {
           setCourses(data);
           setTotalPages(1);
@@ -77,29 +88,26 @@ export default function AdminDashboard() {
           setTotalPages(data.totalPages || 1);
         }
       })
-      .catch((err) => console.error('Error fetching courses:', err));
+      .catch((err) => console.error('Error fetching courses:', err))
+      .finally(() => setLoading(false));
   };
 
   const fetchExams = () => {
-    apiapiFetch(/api/exams')
+    fetch(`${API_BASE}/exams`)
       .then((res) => res.json())
       .then((data) => setExams(Array.isArray(data) ? data : []))
       .catch((err) => console.error('Error fetching exams:', err));
   };
 
   const fetchUsers = () => {
-    apiapiFetch(/api/admin/users', {
-      headers: getAuthHeaders()
-    })
+    fetch(`${API_BASE}/admin/users`, { headers: getAuthHeaders() })
       .then((res) => res.json())
       .then((data) => setUsers(Array.isArray(data) ? data : []))
       .catch((err) => console.error('Error fetching users:', err));
   };
 
   const fetchStats = () => {
-    apiapiFetch(/api/admin/stats', {
-      headers: getAuthHeaders()
-    })
+    fetch(`${API_BASE}/admin/stats`, { headers: getAuthHeaders() })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.stats) {
@@ -117,7 +125,7 @@ export default function AdminDashboard() {
       setSortBy(field);
       setOrder('asc');
     }
-    setPage(1); // Reset to page 1 on new sort
+    setPage(1);
   };
 
   // Open Edit Modal
@@ -135,6 +143,12 @@ export default function AdminDashboard() {
         ? course.potentialProfiles.join(', ')
         : course.potentialProfiles || ''
     );
+  };
+
+  // Open Create Modal
+  const handleOpenCreateModal = () => {
+    resetCourseForm();
+    setEditingCourse('new');
   };
 
   const handleCloseModal = () => {
@@ -163,12 +177,12 @@ export default function AdminDashboard() {
       potentialProfiles: courseProfiles.split(',').map((item) => item.trim()).filter(Boolean),
     };
 
-    const isEdit = !!editingCourse && editingCourse !== 'new';
+    const isEdit = editingCourse && editingCourse !== 'new';
     const url = isEdit
-      ? `/api/courses/${editingCourse._id || editingCourse.id}`
-      : '/api/courses';
+      ? `${API_BASE}/courses/${editingCourse._id || editingCourse.id}`
+      : `${API_BASE}/courses`;
 
-    apiFetch(url, {
+    fetch(url, {
       method: isEdit ? 'PUT' : 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(coursePayload),
@@ -185,7 +199,7 @@ export default function AdminDashboard() {
   // Delete Course
   const handleDeleteCourse = (id) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
-      apiFetch(`/api/courses/${id}`, { 
+      fetch(`${API_BASE}/courses/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -200,7 +214,7 @@ export default function AdminDashboard() {
   // Add Exam
   const handleExamSubmit = (e) => {
     e.preventDefault();
-    apiapiFetch(/api/exams', {
+    fetch(`${API_BASE}/exams`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -223,7 +237,7 @@ export default function AdminDashboard() {
   // Delete Exam
   const handleDeleteExam = (id) => {
     if (window.confirm('Are you sure you want to delete this exam?')) {
-      apiFetch(`/api/exams/${id}`, { 
+      fetch(`${API_BASE}/exams/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -238,7 +252,7 @@ export default function AdminDashboard() {
   // Delete User
   const handleDeleteUser = (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      apiFetch(`/api/admin/users/${id}`, { 
+      fetch(`${API_BASE}/admin/users/${id}`, { 
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -254,7 +268,7 @@ export default function AdminDashboard() {
     <div style={containerStyle}>
       <h1 style={{ fontSize: '28px', color: '#0f172a', marginBottom: '20px' }}>Admin Control Panel</h1>
 
-      {/* ================= ANALYTICS METRICS CARDS ================= */}
+      {/* ANALYTICS METRICS CARDS */}
       <div style={metricsGridStyle}>
         <div style={metricCardStyle}>
           <span style={metricTitleStyle}>Registered Users</span>
@@ -308,7 +322,7 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* ================= COURSES TAB ================= */}
+      {/* COURSES TAB */}
       {activeTab === 'courses' && (
         <div>
           <div style={controlsHeaderStyle}>
@@ -318,11 +332,11 @@ export default function AdminDashboard() {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setPage(1); // Reset to page 1 on search change
+                setPage(1);
               }}
               style={searchInputStyle}
             />
-            <button style={primaryBtnStyle} onClick={() => setEditingCourse('new')}>
+            <button style={primaryBtnStyle} onClick={handleOpenCreateModal}>
               + Add New Course
             </button>
           </div>
@@ -343,7 +357,13 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {courses.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                      Loading courses...
+                    </td>
+                  </tr>
+                ) : courses.length > 0 ? (
                   courses.map((c) => (
                     <tr key={c._id || c.id} style={trStyle}>
                       <td style={{ ...tdStyle, fontWeight: '600' }}>{c.title || c.courseName || c.name}</td>
@@ -396,7 +416,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= EXAMS TAB ================= */}
+      {/* EXAMS TAB */}
       {activeTab === 'exams' && (
         <div>
           <form onSubmit={handleExamSubmit} style={cardFormStyle}>
@@ -469,7 +489,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= USERS TAB ================= */}
+      {/* USERS TAB */}
       {activeTab === 'users' && (
         <div>
           <div style={tableWrapperStyle}>
@@ -515,7 +535,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= EDIT / CREATE MODAL ================= */}
+      {/* EDIT / CREATE MODAL */}
       {editingCourse && (
         <div style={modalBackdropStyle}>
           <div style={modalContentStyle}>
